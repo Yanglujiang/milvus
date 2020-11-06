@@ -44,6 +44,10 @@
 #include "knowhere/index/vector_offset_index/gpu/IndexGPUIVF_NM.h"
 #endif
 
+#ifdef MILVUS_MLU_VERSION
+#include "knowhere/index/vector_index/mlu/IndexMLUIVFPQ.h"
+#endif
+
 namespace milvus {
 namespace knowhere {
 
@@ -51,6 +55,9 @@ VecIndexPtr
 VecIndexFactory::CreateVecIndex(const IndexType& type, const IndexMode mode) {
 #ifdef MILVUS_GPU_VERSION
     auto gpu_device = -1;  // TODO: remove hardcode here, get from invoker
+#endif
+#ifdef MILVUS_MLU_VERSION
+    auto mlu_device = -1;  // TODO: remove hardcode here, get from invoker
 #endif
     if (type == IndexEnum::INDEX_FAISS_IDMAP) {
         return std::make_shared<knowhere::IDMAP>();
@@ -67,7 +74,12 @@ VecIndexFactory::CreateVecIndex(const IndexType& type, const IndexMode mode) {
             return std::make_shared<knowhere::GPUIVFPQ>(gpu_device);
         }
 #endif
-        return std::make_shared<knowhere::IVFPQ>();
+#ifdef MILVUS_MLU_VERSION
+        if (mode == IndexMode::MODE_MLU) {
+            return std::make_shared<knowhere::MLUIVFPQ>(mlu_device);
+        }
+#endif
+	return std::make_shared<knowhere::IVFPQ>();
     } else if (type == IndexEnum::INDEX_FAISS_IVFSQ8) {
 #ifdef MILVUS_GPU_VERSION
         if (mode == IndexMode::MODE_GPU) {

@@ -132,6 +132,23 @@ if (MILVUS_GPU_VERSION)
             )
 endif ()
 
+if (MILVUS_MLU_VERSION)
+    include_directories(${CAMBRICON_INCLUDE_DIRS})
+    link_directories("${CAMBRICON_TOOLKIT_ROOT_DIR}/lib64")
+    #set(cambricon_lib
+    #        cublas
+    #        )
+    set(depend_libs ${depend_libs}
+	    #        ${cambricon_lib}
+            )
+
+    set(vector_index_srcs ${vector_index_srcs}
+	    knowhere/index/vector_index/mlu/IndexMLUIVFPQ.cpp
+            )
+
+endif ()
+
+
 if (NOT TARGET knowhere)
     add_library(
             knowhere STATIC

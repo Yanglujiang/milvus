@@ -27,6 +27,10 @@
 #include "knowhere/index/vector_offset_index/gpu/IndexGPUIVF_NM.h"
 #endif
 
+#ifdef MILVUS_MLU_VERSION
+#include "knowhere/index/vector_index/mlu/IndexMLUIVFPQ.h"
+#endif
+
 int DEVICEID = 0;
 constexpr int64_t DIM = 128;
 constexpr int64_t NB = 10000;
@@ -51,7 +55,7 @@ IndexFactory(const milvus::knowhere::IndexType& type, const milvus::knowhere::In
             std::cout << "Invalid IndexType " << type << std::endl;
         }
 #ifdef MILVUS_GPU_VERSION
-    } else {
+    } else if (mode == milvus::knowhere::IndexMode::MODE_GPU) {
         if (type == milvus::knowhere::IndexEnum::INDEX_FAISS_IVFFLAT) {
             return std::make_shared<milvus::knowhere::GPUIVF>(DEVICEID);
         } else if (type == milvus::knowhere::IndexEnum::INDEX_FAISS_IVFPQ) {
@@ -60,6 +64,14 @@ IndexFactory(const milvus::knowhere::IndexType& type, const milvus::knowhere::In
             return std::make_shared<milvus::knowhere::GPUIVFSQ>(DEVICEID);
         } else if (type == milvus::knowhere::IndexEnum::INDEX_FAISS_IVFSQ8H) {
             return std::make_shared<milvus::knowhere::IVFSQHybrid>(DEVICEID);
+        } else {
+            std::cout << "Invalid IndexType " << type << std::endl;
+        }
+#endif
+#ifdef MILVUS_MLU_VERSION
+    } else if (mode == milvus::knowhere::IndexMode::MODE_MLU) {
+        if (type == milvus::knowhere::IndexEnum::INDEX_FAISS_IVFPQ) {
+            return std::make_shared<milvus::knowhere::MLUIVFPQ>(DEVICEID);
         } else {
             std::cout << "Invalid IndexType " << type << std::endl;
         }

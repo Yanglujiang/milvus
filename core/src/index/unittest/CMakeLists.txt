@@ -79,6 +79,11 @@ set(faiss_srcs ${faiss_srcs}
         ${INDEX_SOURCE_DIR}/knowhere/knowhere/index/vector_offset_index/gpu/IndexGPUIVF_NM.cpp
         )
 endif ()
+if (MILVUS_MLU_VERSION)
+set(faiss_srcs ${faiss_srcs}
+	${INDEX_SOURCE_DIR}/knowhere/knowhere/index/vector_index/mlu/IndexMLUIVFPQ.cpp
+        )
+endif ()
 
 ################################################################################
 #<INSTRUCTIONSET-TEST>
@@ -125,6 +130,14 @@ if (NOT TARGET test_ivf)
 endif ()
 target_link_libraries(test_ivf ${depend_libs} ${unittest_libs} ${basic_libs})
 install(TARGETS test_ivf DESTINATION unittest)
+
+################################################################################
+#<IVFPQ-TEST>
+if (NOT TARGET test_ivfpq)
+    add_executable(test_ivfpq test_ivfpq.cpp ${faiss_srcs} ${util_srcs})
+endif ()
+target_link_libraries(test_ivfpq ${depend_libs} ${unittest_libs} ${basic_libs})
+install(TARGETS test_ivfpq DESTINATION unittest)
 
 ################################################################################
 #<IVFNM-TEST-CPU>

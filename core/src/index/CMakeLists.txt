@@ -65,6 +65,14 @@ else ()
     message(STATUS "Building Knowhere CPU version")
 endif ()
 
+if (MILVUS_MLU_VERSION)
+    message(STATUS "Building Knowhere MLU version")
+    add_compile_definitions("MILVUS_MLU_VERSION")
+else ()
+    message(STATUS "Building Knowhere CPU version")
+endif ()
+
+
 if (MILVUS_SUPPORT_SPTAG)
     message(STATUS "Building Knowhere with SPTAG supported")
     add_compile_definitions("MILVUS_SUPPORT_SPTAG")

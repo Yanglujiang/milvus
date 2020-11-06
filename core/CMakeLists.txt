@@ -79,6 +79,13 @@ else ()
     message( STATUS "Building Milvus CPU version" )
 endif ()
 
+if ( MILVUS_MLU_VERSION )
+    message( STATUS "Building Milvus MLU version" )
+    add_compile_definitions( "MILVUS_MLU_VERSION" )
+else ()
+    message( STATUS "Building Milvus CPU version" )
+endif ()
+
 # TODO: remove after all ut set "FIU_ENABLE"
 set(MILVUS_WITH_FIU "ON")
 
@@ -236,6 +243,13 @@ if ( MILVUS_GPU_VERSION )
 else ()
     set( GPU_ENABLE "false" )
 endif ()
+
+if ( MILVUS_MLU_VERSION )
+    set( MLU_ENABLE "true" )
+else ()
+    set( MLU_ENABLE "false" )
+endif ()
+
 configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/conf/milvus.template
                 ${CMAKE_CURRENT_SOURCE_DIR}/conf/milvus.yaml @ONLY)
 
