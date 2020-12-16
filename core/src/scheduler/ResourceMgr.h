@@ -69,6 +69,11 @@ class ResourceMgr : public interface::dumpable {
         return gpu_resources_;
     }
 
+    inline std::vector<ResourceWPtr>&
+    GetMluResources() {
+        return mlu_resources_;
+    }
+
     inline std::vector<ResourcePtr>
     GetAllResources() {
         return resources_;
@@ -91,6 +96,9 @@ class ResourceMgr : public interface::dumpable {
 
     uint64_t
     GetNumGpuResource() const;
+
+    uint64_t
+    GetNumMluResource() const;
 
  public:
     // TODO(wxyu): add stats interface(low)
@@ -119,6 +127,7 @@ class ResourceMgr : public interface::dumpable {
     std::vector<ResourceWPtr> disk_resources_;
     std::vector<ResourceWPtr> cpu_resources_;
     std::vector<ResourceWPtr> gpu_resources_;
+    std::vector<ResourceWPtr> mlu_resources_;
     std::vector<ResourcePtr> resources_;
     mutable std::mutex resources_mutex_;
 

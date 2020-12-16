@@ -43,6 +43,9 @@ class ExecutionEngine {
     CopyToGpu(uint64_t device_id) = 0;
 
     virtual Status
+    CopyToMlu(uint64_t device_id) = 0;
+
+    virtual Status
     Search(ExecutionEngineContext& context) = 0;
 
     virtual Status

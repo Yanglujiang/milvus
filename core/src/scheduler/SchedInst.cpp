@@ -84,6 +84,20 @@ load_simple_config() {
         }
     }
 #endif
+#ifdef MILVUS_MLU_VERSION
+    bool enable_mlu = config.mlu.enable();
+    if (enable_mlu) {
+        std::vector<int64_t> mlu_ids = ParseMLUDevices(config.mlu.search_devices());
+        auto pcie = Connection("pcie", 12000);
+        
+        for (auto& mlu_id : mlu_ids) {
+            ResMgrInst::GetInstance()->Add(ResourceFactory::Create(std::to_string(mlu_id), "MLU", mlu_id));
+            ResMgrInst::GetInstance()->Connect("cpu", std::to_string(mlu_id), pcie);
+        }
+
+          }
+#endif
+
 }
 
 void

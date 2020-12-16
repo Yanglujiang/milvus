@@ -29,6 +29,11 @@
 #include "knowhere/index/vector_index/gpu/IndexGPUIVFPQ.h"
 #endif
 
+#ifdef MILVUS_MLU_VERSION
+#include "knowhere/index/vector_index/ConfAdapter.h"
+#include "knowhere/index/vector_index/mlu/IndexMLUIVFPQ.h"
+#endif
+
 namespace milvus {
 namespace knowhere {
 
@@ -67,6 +72,33 @@ IVFPQ::CopyCpuToGpu(const int64_t device_id, const Config& config) {
     }
 #else
     KNOWHERE_THROW_MSG("Calling IVFPQ::CopyCpuToGpu when we are using CPU version");
+#endif
+}
+
+VecIndexPtr
+IVFPQ::CopyCpuToMlu(const int64_t device_id, const Config& config) {
+#ifdef MILVUS_MLU_VERSION
+    auto ivfpq_index = dynamic_cast<faiss::IndexIVFPQ*>(index_.get());
+    int64_t dim = ivfpq_index->d;
+    int64_t m = ivfpq_index->pq.M;
+    //int64_t nbits = ivfpq_index->pq.nbits;
+    if (!IVFPQConfAdapter::CheckMLUPQParams(dim, m)) {
+        return nullptr;
+    }
+    if (auto res = FaissMluResourceMgr::GetInstance().GetRes(device_id)) {
+        ResScope rs(res, device_id, false);
+        std::shared_ptr<faiss::Index> device_index;
+        device_index.reset(ivfpq_index);
+        auto mluivfpq_index = std::make_shared<MLUIVFPQ>(device_index, device_id, res);
+        //std::cout<<"Here is IVFPQ::CopyIndexCpuToMlu---mluivfpq_index= "<<mluivfpq_index<<std::endl;
+        mluivfpq_index->CopyIndexCpuToMlu();
+        return mluivfpq_index;
+        //return std::make_shared<MLUIVFPQ>(mluivfpq_index, device_id, res);
+    } else {
+        KNOWHERE_THROW_MSG("CopyCpuToMlu Error, can't get mlu_resource");
+    }
+#else
+    KNOWHERE_THROW_MSG("Calling IVFPQ::CopyCpuToMlu when we are using CPU version");
 #endif
 }
 

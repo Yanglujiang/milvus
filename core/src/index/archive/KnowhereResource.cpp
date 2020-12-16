@@ -13,6 +13,9 @@
 #ifdef MILVUS_GPU_VERSION
 #include "knowhere/index/vector_index/helpers/FaissGpuResourceMgr.h"
 #endif
+#ifdef MILVUS_MLU_VERSION
+#include "knowhere/index/vector_index/helpers/FaissMluResourceMgr.h"
+#endif
 #include <faiss/Clustering.h>
 #include <faiss/utils/distances.h>
 
@@ -132,6 +135,41 @@ KnowhereResource::Initialize() {
                                                                 gpu_resource.second.resource_num);
     }
 #endif
+#ifdef MILVUS_MLU_VERSION
+    bool enable_mlu = config.mlu.enable();
+    fiu_do_on("KnowhereResource.Initialize.disable_mlu", enable_mlu = false);
+    if (!enable_mlu) {
+        return Status::OK();
+    }
+
+    struct MluResourceSetting {
+        int64_t temp_memory = 256 * M_BYTE;
+        int64_t resource_num = 1;
+    };
+    using MluResourcesArray = std::map<int64_t, MluResourceSetting>;
+    MluResourcesArray mlu_resources;
+
+    // get build index mlu resource
+    //std::vector<int64_t> build_index_mlus = ParseMLUDevices(config.mlu.build_index_devices());
+    //
+    //for (auto mlu_id : build_index_mlus) {
+    //    mlu_resources.insert(std::make_pair(mlu_id, MluResourceSetting()));
+    //}
+
+    // get search mlu resource
+    std::vector<int64_t> search_mlus = ParseMLUDevices(config.mlu.search_devices());
+
+    for (auto& mlu_id : search_mlus) {
+        mlu_resources.insert(std::make_pair(mlu_id, MluResourceSetting()));
+    }
+    // init mlu resources
+    for (auto& mlu_resource : mlu_resources) {
+        knowhere::FaissMluResourceMgr::GetInstance().InitDevice(mlu_resource.first, 
+                                                                mlu_resource.second.temp_memory,
+                                                                mlu_resource.second.resource_num);
+    }
+#endif
+
 
     faiss::LOG_ERROR_ = &knowhere::log_error_;
     faiss::LOG_WARNING_ = &knowhere::log_warning_;
@@ -149,6 +187,9 @@ Status
 KnowhereResource::Finalize() {
 #ifdef MILVUS_GPU_VERSION
     knowhere::FaissGpuResourceMgr::GetInstance().Free();  // free gpu resource.
+#endif
+#ifdef MILVUS_MLU_VERSION
+    knowhere::FaissMluResourceMgr::GetInstance().Free();  // free mlu resource.
 #endif
     return Status::OK();
 }

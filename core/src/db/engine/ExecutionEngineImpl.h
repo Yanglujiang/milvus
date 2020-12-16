@@ -35,6 +35,9 @@ class ExecutionEngineImpl : public ExecutionEngine {
     CopyToGpu(uint64_t device_id) override;
 
     Status
+    CopyToMlu(uint64_t device_id) override;
+
+    Status
     Search(ExecutionEngineContext& context) override;
 
     Status
@@ -92,6 +95,11 @@ class ExecutionEngineImpl : public ExecutionEngine {
 
     int64_t gpu_num_ = 0;
     bool gpu_enable_ = false;
+
+#ifdef MILVUS_MLU_VERSION
+    int64_t mlu_num_ = 0;
+    bool mlu_enable_ = false;
+#endif
 };
 
 }  // namespace engine

@@ -208,6 +208,12 @@ IVFPQConfAdapter::CheckCPUPQParams(int64_t dimension, int64_t m) {
 }
 
 bool
+IVFPQConfAdapter::CheckMLUPQParams(int64_t dimension, int64_t m) {
+    return (dimension % m == 0);
+}
+
+
+bool
 NSGConfAdapter::CheckTrain(Config& oricfg, const IndexMode mode) {
     const int64_t MIN_KNNG = 5;
     const int64_t MAX_KNNG = 300;

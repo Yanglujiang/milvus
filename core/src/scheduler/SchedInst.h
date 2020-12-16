@@ -26,6 +26,7 @@
 #include "selector/BuildIndexPass.h"
 #include "selector/FaissFlatPass.h"
 #include "selector/FaissIVFPass.h"
+#include "selector/FaissMLUIVFPQPass.h"
 #include "selector/FaissIVFSQ8HPass.h"
 #include "selector/FallbackPass.h"
 #include "selector/Selector.h"
@@ -120,6 +121,31 @@ class SelectorInst {
                     pass_list.push_back(std::make_shared<FaissIVFSQ8HPass>());
                 }
 #endif
+#ifdef MILVUS_MLU_VERSION
+                bool enable_mlu = config.mlu.enable();
+                if (enable_mlu) {
+                    //std::vector<int64_t> build_mlus = ParseMLUDevices(config.mlu.build_index_devices());
+                    std::vector<int64_t> search_mlus = ParseMLUDevices(config.mlu.search_devices());
+                    int64_t mlu_search_threshold = config.mlu.mlu_search_threshold();
+                    //std::string build_msg = "Build index mlu:";
+                    //for (auto build_id : build_mlus) {
+                    //    build_msg.append(" mlu" + std::to_string(build_id));
+                    //}
+                    //LOG_SERVER_DEBUG_ << LogOut("[%s][%d] %s", "search", 0, build_msg.c_str());
+
+                    std::string search_msg = "Search mlu:";
+                    for (auto search_id : search_mlus) {
+                        search_msg.append(" mlu" + std::to_string(search_id));
+                    }
+                    search_msg.append(". mlu_search_threshold:" + std::to_string(mlu_search_threshold));
+                    LOG_SERVER_DEBUG_ << LogOut("[%s][%d] %s", "search", 0, search_msg.c_str());
+                    
+//                    std::cout<<"Here is Optimizer MLUPass"<<std::endl;
+                    //pass_list.push_back(std::make_shared<BuildIndexPass>());
+                    pass_list.push_back(std::make_shared<FaissMLUIVFPQPass>());
+                }
+#endif
+
                 pass_list.push_back(std::make_shared<FallbackPass>());
                 instance = std::make_shared<Selector>(pass_list);
             }

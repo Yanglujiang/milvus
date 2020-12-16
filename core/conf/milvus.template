@@ -141,6 +141,31 @@ gpu:
     - gpu0
 
 #----------------------+------------------------------------------------------------+------------+-----------------+
+# MLU Config           | Description                                                | Type       | Default         |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# enable               | Use MLU devices or not.                                    | Boolean    | false           |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# cache_size           | The size of MLU memory per card used for cache.            | String     | 1GB             |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# mlu_search_threshold | A Milvus performance tuning parameter. This value will be  | Integer    | 1               |
+#                      | compared with 'nq' to decide if the search computation will|            |                 |
+#                      | be executed on MLUs only.                                  |            |                 |
+#                      | If nq >= mlu_search_threshold, the search computation will |            |                 |
+#                      | be executed on MLUs only;                                  |            |                 |
+#                      | if nq < mlu_search_threshold, the search computation will  |            |                 |
+#                      | be executed on both CPUs and MLUs.                         |            |                 |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# search_devices       | The list of MLU devices used for search computation.       | DeviceList | mlu0            |
+#                      | Must be in format mlux.                                    |            |                 |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+mlu:
+  enable: @MLU_ENABLE@
+  cache_size: 1GB
+  mlu_search_threshold: 1
+  search_devices:
+    - mlu0
+
+#----------------------+------------------------------------------------------------+------------+-----------------+
 # Logs Config          | Description                                                | Type       | Default         |
 #----------------------+------------------------------------------------------------+------------+-----------------+
 # level                | Log level in Milvus. Must be one of debug, info, warning,  | String     | debug           |

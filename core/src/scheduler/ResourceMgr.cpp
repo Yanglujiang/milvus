@@ -73,6 +73,10 @@ ResourceMgr::Add(ResourcePtr&& resource) {
             gpu_resources_.emplace_back(ResourceWPtr(resource));
             break;
         }
+        case ResourceType::MLU: {
+            mlu_resources_.emplace_back(ResourceWPtr(resource));
+            break;
+        }
         default: { break; }
     }
     resources_.emplace_back(resource);
@@ -103,6 +107,7 @@ ResourceMgr::Clear() {
     disk_resources_.clear();
     cpu_resources_.clear();
     gpu_resources_.clear();
+    mlu_resources_.clear();
     resources_.clear();
 }
 
@@ -164,6 +169,17 @@ ResourceMgr::GetNumGpuResource() const {
     return num;
 }
 
+uint64_t
+ResourceMgr::GetNumMluResource() const {
+    uint64_t num = 0;
+    for (auto& res : resources_) {
+        if (res->type() == ResourceType::MLU) {
+            num++;
+        }
+    }
+    return num;
+}
+
 json
 ResourceMgr::Dump() const {
     json resources{};
@@ -175,6 +191,7 @@ ResourceMgr::Dump() const {
         {"number_of_disk_resource", disk_resources_.size()},
         {"number_of_cpu_resource", cpu_resources_.size()},
         {"number_of_gpu_resource", gpu_resources_.size()},
+        {"number_of_mlu_resource", mlu_resources_.size()},
         {"resources", resources},
     };
     return ret;

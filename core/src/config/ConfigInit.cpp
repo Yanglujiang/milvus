@@ -139,6 +139,13 @@ InitConfig() {
         String(gpu.search_devices, "gpu0"),
         String(gpu.build_index_devices, "gpu0"),
 
+        /* mlu */
+        Bool(mlu.enable, false),
+        Size(mlu.cache_size, 0, std::numeric_limits<int64_t>::max(), 1 * GB),
+        Floating(mlu.cache_threshold, 0.0, 1.0, 0.7),
+        Integer(mlu.mlu_search_threshold, 0, std::numeric_limits<int64_t>::max(), 0),
+        String(mlu.search_devices, "mlu0"),
+
         /* log */
         String(logs.level, "debug"),
         Bool(logs.trace.enable, true),
@@ -314,6 +321,31 @@ gpu:
   gpu_search_threshold: @gpu.gpu_search_threshold@
   search_devices: @gpu.search_devices@
   build_index_devices: @gpu.build_index_devices@
+
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# MLU Config           | Description                                                | Type       | Default         |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# enable               | Use MLU devices or not.                                    | Boolean    | false           |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# cache_size           | The size of MLU memory per card used for cache.            | String     | 1GB             |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+# mlu_search_threshold | A Milvus performance tuning parameter. This value will be  | Integer    | 1               |
+#                      | compared with 'nq' to decide if the search computation will|            |                 |
+#                      | be executed on MLUs only.                                  |            |                 |
+#                      | If nq >= mlu_search_threshold, the search computation will |            |                 |
+#                      | be executed on MLUs only;                                  |            |                 |
+#                      | if nq < mlu_search_threshold, the search computation will  |            |                 |
+#                      | be executed on both CPUs and MLUs.                         |            |                 |
+#-----------------------+------------------------------------------------------------+------------+-----------------+
+# search_devices       | The list of MLU devices used for search computation.       | DeviceList | mlu0            |
+#                      | Must be in format gpux.                                    |            |                 |
+#----------------------+------------------------------------------------------------+------------+-----------------+
+mlu:
+  enable: @mlu.enable@
+  cache_size: @mlu.cache_size@
+  mlu_search_threshold: @mlu.mlu_search_threshold@
+  search_devices: @mlu.search_devices@
+
 
 #----------------------+------------------------------------------------------------+------------+-----------------+
 # Logs Config          | Description                                                | Type       | Default         |

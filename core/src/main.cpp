@@ -54,6 +54,9 @@ print_banner() {
               << " library." << std::endl;
 #ifdef MILVUS_GPU_VERSION
     std::cout << "You are using Milvus GPU edition" << std::endl;
+#endif 
+#ifdef MILVUS_MLU_VERSION
+    std::cout << "You are using Milvus MLU edition" << std::endl; 
 #else
     std::cout << "You are using Milvus CPU edition" << std::endl;
 #endif

@@ -16,6 +16,7 @@ PROFILING="OFF"
 RUN_CPPLINT="OFF"
 CUDA_COMPILER=/usr/local/cuda/bin/nvcc
 GPU_VERSION="OFF" #defaults to CPU version
+MLU_VERSION="OFF" #defaults to CPU version
 WITH_PROMETHEUS="ON"
 CUDA_ARCH="DEFAULT"
 CUSTOM_THIRDPARTY_PATH=""
@@ -55,6 +56,9 @@ while getopts "p:d:t:s:f:ulrcghzme" arg; do
   g)
     GPU_VERSION="ON"
     ;;
+  m)
+    MLU_VERSION="ON"
+    ;;
   e)
     WITH_PROMETHEUS="OFF"
     ;;
@@ -75,6 +79,7 @@ parameter:
 -c: code coverage(default: OFF)
 -z: profiling(default: OFF)
 -g: build GPU version(default: OFF)
+-m: build MLU version(default: OFF)
 -e: build without prometheus(default: OFF)
 -s: build with CUDA arch(default:DEFAULT), for example '-gencode=compute_61,code=sm_61;-gencode=compute_75,code=sm_75'
 -h: help
@@ -118,6 +123,7 @@ CMAKE_CMD="cmake \
 -DMILVUS_DB_PATH=${DB_PATH} \
 -DENABLE_CPU_PROFILING=${PROFILING} \
 -DMILVUS_GPU_VERSION=${GPU_VERSION} \
+-DMILVUS_MLU_VERSION=${MLU_VERSION} \
 -DMILVUS_WITH_PROMETHEUS=${WITH_PROMETHEUS} \
 -DMILVUS_CUDA_ARCH=${CUDA_ARCH} \
 -DCUSTOM_THIRDPARTY_DOWNLOAD_PATH=${CUSTOM_THIRDPARTY_PATH} \

@@ -37,9 +37,10 @@ constexpr int32_t NLIST = 1024;
 const char* DIMENSION = "dim";
 const char* METRICTYPE = "metric_type";
 const char* INDEXTYPE = "index_type";
-constexpr int64_t ADD_ENTITY_LOOP = 5;
-constexpr milvus::IndexType INDEX_TYPE = milvus::IndexType::IVF_FLAT;
-constexpr int32_t NLIST = 16384;
+//constexpr int64_t ADD_ENTITY_LOOP = 5;
+//constexpr milvus::IndexType INDEX_TYPE = milvus::IndexType::IVF_FLAT;
+constexpr milvus::IndexType INDEX_TYPE = milvus::IndexType::IVFFLAT;
+//constexpr int32_t NLIST = 16384;
 
 void
 PrintEntity(const std::string& tag, const milvus::VectorData& entity) {
@@ -124,7 +125,7 @@ ClientTest::ListPartitions() {
 void
 ClientTest::InsertEntities() {
     std::vector<int32_t> duration{208, 226, 252};
-    std::vector<int32_t> release_year{2001, 2002, 2003};
+    std::vector<int32_t> release_year{2002, 2002, 2003};
     std::vector<milvus::VectorData> embedding;
     milvus_sdk::Utils::BuildVectors(COLLECTION_DIMENSION, 3, embedding);
 
@@ -221,6 +222,9 @@ ClientTest::SearchEntities() {
 
     std::vector<std::string> partition_tags;
     milvus::TopKQueryResult topk_query_result;
+    std::cout<<dsl_json.dump()<<std::endl;
+    std::cout<<vector_param_json.dump()<<std::endl;
+    std::cout<<json_params.dump()<<std::endl;
     auto status = conn_->Search(COLLECTION_NAME, partition_tags, dsl_json.dump(), vector_param, json_params.dump(),
                                 topk_query_result);
 

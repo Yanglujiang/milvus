@@ -21,6 +21,9 @@ extern VecIndexPtr
 CopyCpuToGpu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
 
 extern VecIndexPtr
+CopyCpuToMlu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
+
+extern VecIndexPtr
 CopyGpuToCpu(const VecIndexPtr& index, const Config& config);
 
 }  // namespace cloner

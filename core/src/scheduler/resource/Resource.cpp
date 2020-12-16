@@ -39,6 +39,9 @@ ToString(ResourceType type) {
         case ResourceType::GPU: {
             return "GPU";
         }
+        case ResourceType::MLU: {
+            return "MLU";
+        } 
         default: { return "UNKNOWN"; }
     }
 }

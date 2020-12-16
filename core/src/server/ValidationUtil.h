@@ -25,6 +25,8 @@ namespace server {
 constexpr int64_t QUERY_MAX_TOPK = 16384;
 constexpr int64_t GPU_QUERY_MAX_TOPK = 2048;
 constexpr int64_t GPU_QUERY_MAX_NPROBE = 2048;
+constexpr int64_t MLU_QUERY_MAX_TOPK = 2048;
+constexpr int64_t MLU_QUERY_MAX_NPROBE = 1;
 
 extern Status
 ValidateCollectionName(std::string& collection_name);
