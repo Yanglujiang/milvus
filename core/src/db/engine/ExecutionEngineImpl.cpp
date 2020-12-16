@@ -200,10 +200,13 @@ ExecutionEngineImpl::CopyToMlu(uint64_t device_id) {
 
     engine::VECTOR_INDEX_MAP new_map;
     engine::VECTOR_INDEX_MAP& indice = segment_ptr->GetVectorIndice();
+    bool indexModify = false;
     for (auto& pair : indice) {
         if (pair.second != nullptr) {
             if (pair.second->index_type() == "FLAT")
                 continue;
+
+            indexModify = true;
             auto mlu_index = knowhere::cloner::CopyCpuToMlu(pair.second, device_id, knowhere::Config());
             if (mlu_index == nullptr) {
                 new_map.insert(pair);
@@ -212,9 +215,10 @@ ExecutionEngineImpl::CopyToMlu(uint64_t device_id) {
             }
         }
     }
-
+    if (indexModify) {
     indice.swap(new_map);
     mlu_num_ = device_id;
+    }
 #endif
     return Status::OK();
 }

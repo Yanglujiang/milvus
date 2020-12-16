@@ -88,7 +88,6 @@ MluInterface::CopyIndexToMLU() {
     cnrtGetDeviceHandle(&dev, mlu_id_);
     cnrtSetCurrentDevice(dev);
 
-    std::cout<<std::this_thread::get_id()<<std::endl;
     CNRT_CHECK(cnrtMalloc(&mlu_dev, cnrtDataTypeSize(CNRT_UINT8) * 128 * 1024 * 1024));
 
     //mlu_dev = tempMemAlloc_;
@@ -157,22 +156,22 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
     cnrtMemcpy((char *)mlu_dev + query_offset, 
             query.data(), sizeof(float) * nq * d, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
-    std::cout
-        <<" level1_centroids_offset = "<<level1_centroids_offset
-        <<" level2_centroids_offset = "<<level2_centroids_offset
-        <<" codes_offset = "<<codes_offset
-        <<" ids_offset = "<<ids_offset
-        <<" query_offset = "<<query_offset
-        <<" act_tbl_offset = "<<act_tbl_offset
-        <<" output_offset = "<<output_offset
-        <<" topk_out_offset = "<<topk_out_offset
-        <<" topk_out_ids_offset = "<<topk_out_ids_offset
-        <<" nq = "<<nq
-        <<" m = "<<m
-        <<" ksub = "<<ksub
-        <<" d = "<<d
-        <<" nb = "<<nb
-        <<" topk = "<<topk <<std::endl;
+//    std::cout
+//        <<" level1_centroids_offset = "<<level1_centroids_offset
+//        <<" level2_centroids_offset = "<<level2_centroids_offset
+//        <<" codes_offset = "<<codes_offset
+//        <<" ids_offset = "<<ids_offset
+//        <<" query_offset = "<<query_offset
+//        <<" act_tbl_offset = "<<act_tbl_offset
+//        <<" output_offset = "<<output_offset
+//        <<" topk_out_offset = "<<topk_out_offset
+//        <<" topk_out_ids_offset = "<<topk_out_ids_offset
+//        <<" nq = "<<nq
+//        <<" m = "<<m
+//        <<" ksub = "<<ksub
+//        <<" d = "<<d
+//        <<" nb = "<<nb
+//        <<" topk = "<<topk <<std::endl;
  
     MluProductQuantization(
             (char *)mlu_dev + query_offset,
@@ -212,7 +211,6 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
     for(int i = 0; i < nq * topk;i++){
         printf("distance[%d] = %f, labels[%d]=%ld\n",i,distance[i],i,labels[i]);
     }
-    std::cout<<std::this_thread::get_id()<<std::endl;
     CNRT_CHECK(cnrtFree(mlu_dev));
 
 }
