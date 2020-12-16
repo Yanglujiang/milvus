@@ -36,12 +36,10 @@ void
 StandardMluResources::setTempMemory(size_t size) {
     tempMemAllocSize_ = size;
 //    CNRT_CHECK(cnrtMalloc(&tempMemAlloc_, cnrtDataTypeSize(CNRT_UINT8) * tempMemAllocSize_));
-//    std::cout<<"***** Here is StandardMluResources::setTempMemory "<<tempMemAlloc_<<std::endl;
 }
 
 void*
 StandardMluResources::getTempMemory() {
-//      std::cout<<"***** Here is StandardMluResources::getTempMemory "<<tempMemAlloc_<<std::endl;
       return tempMemAlloc_;
 }
 

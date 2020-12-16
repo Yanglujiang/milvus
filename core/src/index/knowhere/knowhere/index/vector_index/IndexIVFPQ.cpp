@@ -90,7 +90,6 @@ IVFPQ::CopyCpuToMlu(const int64_t device_id, const Config& config) {
         std::shared_ptr<faiss::Index> device_index;
         device_index.reset(ivfpq_index);
         auto mluivfpq_index = std::make_shared<MLUIVFPQ>(device_index, device_id, res);
-        //std::cout<<"Here is IVFPQ::CopyIndexCpuToMlu---mluivfpq_index= "<<mluivfpq_index<<std::endl;
         mluivfpq_index->CopyIndexCpuToMlu();
         return mluivfpq_index;
         //return std::make_shared<MLUIVFPQ>(mluivfpq_index, device_id, res);

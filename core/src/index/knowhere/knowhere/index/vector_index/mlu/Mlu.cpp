@@ -88,7 +88,6 @@ MluInterface::CopyIndexToMLU() {
     cnrtGetDeviceHandle(&dev, mlu_id_);
     cnrtSetCurrentDevice(dev);
 
-    std::cout<<"Here is Malloc"<<std::endl;
     std::cout<<std::this_thread::get_id()<<std::endl;
     CNRT_CHECK(cnrtMalloc(&mlu_dev, cnrtDataTypeSize(CNRT_UINT8) * 128 * 1024 * 1024));
 
@@ -114,7 +113,6 @@ MluInterface::CopyIndexToMLU() {
 
     ConvertInt64ToInt32(ids_64, ids_32.data(), nb);
     
-    std::cout<<"***** Here is MluInterface::CopyIndexToMlu::mlu_dev="<<mlu_dev<<std::endl;
     cnrtMemcpy((char *)mlu_dev + level2_centroids_offset, 
             level2_centroids_transorder.data(), sizeof(float) * ksub * d, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
@@ -156,7 +154,6 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
         }
     }
 
-    std::cout<<"***** Here is MluInterface::Search::mlu_dev="<<mlu_dev<<std::endl;
     cnrtMemcpy((char *)mlu_dev + query_offset, 
             query.data(), sizeof(float) * nq * d, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
@@ -215,7 +212,6 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
     for(int i = 0; i < nq * topk;i++){
         printf("distance[%d] = %f, labels[%d]=%ld\n",i,distance[i],i,labels[i]);
     }
-    std::cout<<"Here is Free"<<std::endl;
     std::cout<<std::this_thread::get_id()<<std::endl;
     CNRT_CHECK(cnrtFree(mlu_dev));
 

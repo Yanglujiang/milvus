@@ -87,7 +87,6 @@ MLUIVFPQ::CopyIndexCpuToMlu(){
         std::cout<<"Mlu CopyToMlu Mlu:"<<Mlu<<std::endl;
         ivf_index->make_direct_map();
         Mlu->setIndex(ivf_index);
-        //std::cout<<"***** Here is MLUIVFPQ:CopyIndexCpuToMlu"<<std::endl;
         Mlu->CopyIndexToMLU();
     } catch(...) {
     }
@@ -103,7 +102,6 @@ MLUIVFPQ::QueryImpl(int64_t nq, const float *data, int64_t k, float *distances, 
         //auto Mlu = std::make_shared<MluInterface>(mlu_id_, res_, ivf_index);
         //std::cout<<"Mlu QueryImpl ivf_index :"<<ivf_index<<std::endl;
         std::cout<<"Mlu QueryImpl Mlu:"<<Mlu<<std::endl;
-        //std::cout<<"***** Here is MLUIVFPQ:QueryImpl"<<std::endl;
         Mlu->Search(nq, data, k, distances, labels);
     } catch(...) {
     }

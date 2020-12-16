@@ -140,7 +140,6 @@ class SelectorInst {
                     search_msg.append(". mlu_search_threshold:" + std::to_string(mlu_search_threshold));
                     LOG_SERVER_DEBUG_ << LogOut("[%s][%d] %s", "search", 0, search_msg.c_str());
                     
-//                    std::cout<<"Here is Optimizer MLUPass"<<std::endl;
                     //pass_list.push_back(std::make_shared<BuildIndexPass>());
                     pass_list.push_back(std::make_shared<FaissMLUIVFPQPass>());
                 }
