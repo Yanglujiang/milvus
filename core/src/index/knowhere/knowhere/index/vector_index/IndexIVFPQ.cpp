@@ -78,7 +78,7 @@ IVFPQ::CopyCpuToGpu(const int64_t device_id, const Config& config) {
 VecIndexPtr
 IVFPQ::CopyCpuToMlu(const int64_t device_id, const Config& config) {
 #ifdef MILVUS_MLU_VERSION
-    auto ivfpq_index = dynamic_cast<faiss::IndexIVFPQ*>(index_.get());
+    //auto ivfpq_index = dynamic_cast<faiss::IndexIVFPQ*>(index_.get());
     int64_t dim = ivfpq_index->d;
     int64_t m = ivfpq_index->pq.M;
     //int64_t nbits = ivfpq_index->pq.nbits;
@@ -87,9 +87,9 @@ IVFPQ::CopyCpuToMlu(const int64_t device_id, const Config& config) {
     }
     if (auto res = FaissMluResourceMgr::GetInstance().GetRes(device_id)) {
         ResScope rs(res, device_id, false);
-        std::shared_ptr<faiss::Index> device_index;
-        device_index.reset(ivfpq_index);
-        auto mluivfpq_index = std::make_shared<MLUIVFPQ>(device_index, device_id, res);
+        //std::shared_ptr<faiss::Index> device_index;
+        //device_index.reset(ivfpq_index);
+        auto mluivfpq_index = std::make_shared<MLUIVFPQ>(index_, device_id, res);
         mluivfpq_index->CopyIndexCpuToMlu();
         return mluivfpq_index;
         //return std::make_shared<MLUIVFPQ>(mluivfpq_index, device_id, res);
