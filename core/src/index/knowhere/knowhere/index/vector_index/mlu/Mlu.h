@@ -41,7 +41,9 @@ class MluInterface {
     int m;  // sub-quantizer
     int nbits;
     int ksub;
-    void *mlu_dev;// = nullptr;
+
+    void *index_dev = nullptr;
+    void *query_dev = nullptr;
 
     faiss::IndexIVFPQ* index_ptr;
 

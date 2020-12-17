@@ -26,6 +26,7 @@ MluInterface::MluInterface(int64_t& device_id, ResWPtr& res_, faiss::IndexIVFPQ*
 }
 
 MluInterface::~MluInterface() {
+    std::cout<<"Here is MluInterface::~MluInterface"<<std::endl;
 }
 
 void
@@ -34,7 +35,7 @@ MluInterface::GetDevAddr() {
     level2_centroids_offset = 0;
     codes_offset = level2_centroids_offset + sizeof(float) * ksub * d;
     ids_offset = codes_offset + sizeof(uint8_t) * m * nb;    
-    query_offset = ids_offset + sizeof(int32_t) * nb;    
+    //query_offset = ids_offset + sizeof(int32_t) * nb;    
 }
 
 void ConvertInt64ToInt32(int64_t *src, int32_t *dst, int length){
@@ -88,9 +89,9 @@ MluInterface::CopyIndexToMLU() {
     cnrtGetDeviceHandle(&dev, mlu_id_);
     cnrtSetCurrentDevice(dev);
 
-    CNRT_CHECK(cnrtMalloc(&mlu_dev, cnrtDataTypeSize(CNRT_UINT8) * 128 * 1024 * 1024));
+    int index_request = sizeof(float) * ksub * d + sizeof(uint8_t) * m * nb + sizeof(int32_t) * nb; 
+    CNRT_CHECK(cnrtMalloc(&index_dev, cnrtDataTypeSize(CNRT_UINT8) * index_request));
 
-    //mlu_dev = tempMemAlloc_;
     float *level2_centroids = &(index_ptr->pq.centroids[0]);                        // level2_cluster centers
     uint8_t *codes = const_cast<uint8_t *>(index_ptr->invlists->get_codes(0));        // lib short codes
     int64_t *ids_64 = const_cast<int64_t *>(index_ptr->invlists->get_ids(0));        //lib index 
@@ -112,13 +113,13 @@ MluInterface::CopyIndexToMLU() {
 
     ConvertInt64ToInt32(ids_64, ids_32.data(), nb);
     
-    cnrtMemcpy((char *)mlu_dev + level2_centroids_offset, 
+    cnrtMemcpy((char *)index_dev + level2_centroids_offset, 
             level2_centroids_transorder.data(), sizeof(float) * ksub * d, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
-    cnrtMemcpy((char *)mlu_dev + codes_offset, 
+    cnrtMemcpy((char *)index_dev + codes_offset, 
             codes_transorder.data(), sizeof(uint8_t) * m * nb, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
-    cnrtMemcpy((char *)mlu_dev + ids_offset, 
+    cnrtMemcpy((char *)index_dev + ids_offset, 
             ids_32.data(), sizeof(int32_t) * nb, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
 }
@@ -131,6 +132,13 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
 
     nq = num_query;
     topk = k;
+
+    int query_request = sizeof(float) * nq * d + sizeof(float) * nq * m * 128 + sizeof(float) * nq * nb + sizeof(float) * nq * topk +sizeof(int32_t) * nq * topk;
+
+
+    CNRT_CHECK(cnrtMalloc(&query_dev, cnrtDataTypeSize(CNRT_UINT8) * query_request));
+
+    int query_offset = 0;
     int act_tbl_offset = query_offset + sizeof(float) * nq * d;
     int output_offset = act_tbl_offset + sizeof(float) * nq * m * 128;
     int topk_out_offset = output_offset + sizeof(float) * nq * nb;  
@@ -144,7 +152,7 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
     cnrtDataType_t index_dt = CNRT_INT32;
 
     float *level1_centroids = &((faiss::IndexFlatL2 *)index_ptr->quantizer)->xb[0]; // level1_cluster centers
-
+    
     std::vector<float> query(nq * d); 
     // do resiudal: query - level1_centroids 
     for (int i = 0; i < nq; i++){
@@ -153,7 +161,7 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
         }
     }
 
-    cnrtMemcpy((char *)mlu_dev + query_offset, 
+    cnrtMemcpy((char *)query_dev + query_offset, 
             query.data(), sizeof(float) * nq * d, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
 //    std::cout
@@ -174,11 +182,11 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
 //        <<" topk = "<<topk <<std::endl;
  
     MluProductQuantization(
-            (char *)mlu_dev + query_offset,
-            (char *)mlu_dev + level2_centroids_offset,
-            (char *)mlu_dev + act_tbl_offset,
-            (char *)mlu_dev + codes_offset,
-            (char *)mlu_dev + output_offset,
+            (char *)query_dev + query_offset,
+            (char *)index_dev + level2_centroids_offset,
+            (char *)query_dev + act_tbl_offset,
+            (char *)index_dev + codes_offset,
+            (char *)query_dev + output_offset,
             query_dt,
             code_dt,
             lib_dt,
@@ -190,10 +198,10 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
             nb);
     
     MluTopk(
-            (char *)mlu_dev + output_offset,
-            (char *)mlu_dev + ids_offset,
-            (char *)mlu_dev + topk_out_offset, 
-            (char *)mlu_dev + topk_out_ids_offset,
+            (char *)query_dev + output_offset,
+            (char *)index_dev + ids_offset,
+            (char *)query_dev + topk_out_offset, 
+            (char *)query_dev + topk_out_ids_offset,
             nq,
             nb,
             topk,
@@ -201,17 +209,14 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
             index_dt
            );
 
-    cnrtMemcpy(distance, (char *)mlu_dev + topk_out_offset,  sizeof(float) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
+    cnrtMemcpy(distance, (char *)query_dev + topk_out_offset,  sizeof(float) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
 
     std::vector<int32_t> ids_32(nq * topk); 
-    cnrtMemcpy(ids_32.data(), (char *)mlu_dev + topk_out_ids_offset, sizeof(int32_t) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
-    //cnrtFree(&mlu_dev);
+    cnrtMemcpy(ids_32.data(), (char *)query_dev + topk_out_ids_offset, sizeof(int32_t) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
 
     ConvertInt32ToInt64(ids_32.data(), labels, nq * topk);
-    for(int i = 0; i < nq * topk;i++){
-        printf("distance[%d] = %f, labels[%d]=%ld\n",i,distance[i],i,labels[i]);
-    }
-    CNRT_CHECK(cnrtFree(mlu_dev));
+    CNRT_CHECK(cnrtFree(index_dev));
+    CNRT_CHECK(cnrtFree(query_dev));
 
 }
 }  // namespace knowhere
