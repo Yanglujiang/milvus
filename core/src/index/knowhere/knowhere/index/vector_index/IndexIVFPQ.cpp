@@ -78,7 +78,7 @@ IVFPQ::CopyCpuToGpu(const int64_t device_id, const Config& config) {
 VecIndexPtr
 IVFPQ::CopyCpuToMlu(const int64_t device_id, const Config& config) {
 #ifdef MILVUS_MLU_VERSION
-    //auto ivfpq_index = dynamic_cast<faiss::IndexIVFPQ*>(index_.get());
+    auto ivfpq_index = dynamic_cast<faiss::IndexIVFPQ*>(index_.get());
     int64_t dim = ivfpq_index->d;
     int64_t m = ivfpq_index->pq.M;
     //int64_t nbits = ivfpq_index->pq.nbits;
