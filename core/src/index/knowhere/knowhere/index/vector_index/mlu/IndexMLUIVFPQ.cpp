@@ -34,6 +34,8 @@
 namespace milvus {
 namespace knowhere {
 
+using stdclock = std::chrono::high_resolution_clock;
+
 //void
 //MLUIVFPQ::Train(const DatasetPtr& dataset_ptr, const Config& config) {
 //    GET_TENSOR_DATA_DIM(dataset_ptr)
@@ -81,12 +83,14 @@ MLUIVFPQ::CopyIndexCpuToMlu(){
     std::lock_guard<std::mutex> lk(mutex_);
     try {
         auto ivf_index = static_cast<faiss::IndexIVFPQ*>(index_.get());
-        //auto Mlu = MluInst::GetInstance(mlu_id_, res_, ivf_index);
+        stdclock::time_point before = stdclock::now();
         Mlu = std::make_shared<MluInterface>(mlu_id_, res_, ivf_index);
-        //std::cout<<"Mlu CopyToMlu ivf_index :"<<ivf_index<<std::endl;
         ivf_index->make_direct_map();
         Mlu->setIndex(ivf_index);
         Mlu->CopyIndexToMLU();
+        stdclock::time_point after = stdclock::now();
+        double search_cost = (std::chrono::duration<double, std::micro>(after - before)).count();
+        std::cout<< "MLU PCIE cost: " << search_cost<<" us"<<std::endl;
     } catch(...) {
     }
 }
@@ -97,10 +101,11 @@ MLUIVFPQ::QueryImpl(int64_t nq, const float *data, int64_t k, float *distances, 
     std::lock_guard<std::mutex> lk(mutex_);
     try {
         auto ivf_index = static_cast<faiss::IndexIVFPQ*>(index_.get());
-        //auto Mlu = MluInst::GetInstance(mlu_id_, res_, ivf_index);
-        //auto Mlu = std::make_shared<MluInterface>(mlu_id_, res_, ivf_index);
-        //std::cout<<"Mlu QueryImpl ivf_index :"<<ivf_index<<std::endl;
+        stdclock::time_point before = stdclock::now();
         Mlu->Search(nq, data, k, distances, labels);         
+        stdclock::time_point after = stdclock::now();
+        double search_cost = (std::chrono::duration<double, std::micro>(after - before)).count();
+        std::cout<< "MLU search cost: " << search_cost<<" us"<<std::endl;
     } catch(...) {
     }
 
