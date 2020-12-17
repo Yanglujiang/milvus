@@ -133,14 +133,14 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
     nq = num_query;
     topk = k;
 
-    int query_request = sizeof(float) * nq * d + sizeof(float) * nq * m * 128 + sizeof(float) * nq * nb + sizeof(float) * nq * topk +sizeof(int32_t) * nq * topk;
+    int query_request = sizeof(float) * nq * d + sizeof(float) * nq * m * 128 * 9 + sizeof(float) * nq * nb + sizeof(float) * nq * topk +sizeof(int32_t) * nq * topk;
 
 
     CNRT_CHECK(cnrtMalloc(&query_dev, cnrtDataTypeSize(CNRT_UINT8) * query_request));
 
     int query_offset = 0;
     int act_tbl_offset = query_offset + sizeof(float) * nq * d;
-    int output_offset = act_tbl_offset + sizeof(float) * nq * m * 128;
+    int output_offset = act_tbl_offset + sizeof(float) * nq * m * 128 * 9;
     int topk_out_offset = output_offset + sizeof(float) * nq * nb;  
     int topk_out_ids_offset = topk_out_offset + sizeof(float) * nq * topk;
 
