@@ -15,7 +15,7 @@
 #include <iostream>
 #include <thread>
 #include "knowhere/index/vector_index/mlu/Mlu.h"
-
+#include <algorithm>
 //namespace Mlu {
 namespace milvus {
 namespace knowhere {
@@ -196,25 +196,46 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
             ksub,
             d,
             nb);
-    
-    MluTopk(
-            (char *)query_dev + output_offset,
-            (char *)index_dev + ids_offset,
-            (char *)query_dev + topk_out_offset, 
-            (char *)query_dev + topk_out_ids_offset,
-            nq,
-            nb,
-            topk,
-            src_dt, 
-            index_dt
-           );
+    for(int i = 0; i < nq; i++){
+        std::vector<int64_t> ss_ids(nb); 
+        std::vector<float> ss_dis(nb); 
+        typedef std::pair<int64_t, float> Pair;
+        std::vector<Pair> pq_search_out_dis_ids;
+	
+	cnrtMemcpy(ss_dis.data(), (char *)query_dev + output_offset + nb * i * sizeof(float),  sizeof(float) * nb, CNRT_MEM_TRANS_DIR_DEV2HOST);
 
-    cnrtMemcpy(distance, (char *)query_dev + topk_out_offset,  sizeof(float) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
-
-    std::vector<int32_t> ids_32(nq * topk); 
-    cnrtMemcpy(ids_32.data(), (char *)query_dev + topk_out_ids_offset, sizeof(int32_t) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
-
-    ConvertInt32ToInt64(ids_32.data(), labels, nq * topk);
+        int64_t *ids_64 = const_cast<int64_t *>(index_ptr->invlists->get_ids(0));        //lib index 
+	for(int j = 0; j < nb; j++){
+	    ss_ids[j] = ids_64[j];
+	    pq_search_out_dis_ids.push_back(std::make_pair(ss_ids[j], ss_dis[j]));
+	}
+	std::partial_sort(pq_search_out_dis_ids.begin(), pq_search_out_dis_ids.begin() + k, pq_search_out_dis_ids.end(),
+			                      [](Pair &x, Pair &y) -> bool { return x.second < y.second; });
+	
+	for(int j = 0; j < topk; j++){
+		distance[i * topk + j] = pq_search_out_dis_ids[j].second;
+		labels[i * topk + j] = pq_search_out_dis_ids[j].first;
+	}
+	pq_search_out_dis_ids.clear();
+    }
+//    MluTopk(
+//            (char *)query_dev + output_offset,
+//            (char *)index_dev + ids_offset,
+//            (char *)query_dev + topk_out_offset, 
+//            (char *)query_dev + topk_out_ids_offset,
+//            nq,
+//            nb,
+//            topk,
+//            src_dt, 
+//            index_dt
+//           );
+//
+//    cnrtMemcpy(distance, (char *)query_dev + topk_out_offset,  sizeof(float) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
+//
+//    std::vector<int32_t> ids_32(nq * topk); 
+//    cnrtMemcpy(ids_32.data(), (char *)query_dev + topk_out_ids_offset, sizeof(int32_t) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
+//
+//    ConvertInt32ToInt64(ids_32.data(), labels, nq * topk);
     CNRT_CHECK(cnrtFree(index_dev));
     CNRT_CHECK(cnrtFree(query_dev));
 

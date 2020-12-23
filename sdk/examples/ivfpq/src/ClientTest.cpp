@@ -27,11 +27,11 @@ namespace {
 const char* COLLECTION_NAME = milvus_sdk::Utils::GenCollectionName().c_str();
 const char* PARTITION_TAG = "American";
 
-constexpr int64_t COLLECTION_DIMENSION = 32;
+constexpr int64_t COLLECTION_DIMENSION = 128;
 constexpr milvus::MetricType COLLECTION_METRIC_TYPE = milvus::MetricType::L2;
-constexpr int64_t BATCH_ENTITY_COUNT = 10000;
-constexpr int64_t NQ = 1;
-constexpr int64_t TOP_K = 3;
+constexpr int64_t BATCH_ENTITY_COUNT = 1000000;
+constexpr int64_t NQ = 4;
+constexpr int64_t TOP_K = 1000;
 constexpr int64_t NPROBE = 1;
 constexpr int64_t SEARCH_TARGET = BATCH_ENTITY_COUNT / 2;  // change this value, result is different
 constexpr int64_t ADD_ENTITY_LOOP = 1;
@@ -87,7 +87,7 @@ ClientTest::CreateCollection() {
         std::make_shared<milvus::Field>("embedding", milvus::DataType::VECTOR_FLOAT, vector_param.dump());
 
     nlohmann::json json_param;
-    json_param = {{"auto_id", false}, {"segment_row_limit", 4096}};
+    json_param = {{"auto_id", false}, {"segment_row_limit", 1000000}};
     milvus::Mapping mapping = {COLLECTION_NAME, {field1, field2, field3}, json_param.dump()};
 
     milvus::Status status = conn_->CreateCollection(mapping);
@@ -239,7 +239,7 @@ ClientTest::SearchEntities() {
     milvus_sdk::Utils::GenDSLJson(dsl_json, vector_param_json, TOP_K, "L2");
 
     std::vector<milvus::VectorData> query_embedding;
-    milvus_sdk::Utils::BuildVectors(COLLECTION_DIMENSION, 1, query_embedding);
+    milvus_sdk::Utils::BuildVectors(COLLECTION_DIMENSION, NQ, query_embedding);
 
     milvus::VectorParam vector_param = {vector_param_json.dump(), query_embedding};
 
@@ -263,7 +263,7 @@ ClientTest::CreateIndex(const std::string& collection_name, int64_t nlist) {
     milvus_sdk::TimeRecorder rc("Create index");
     std::cout << "Wait until create all index done" << std::endl;
     //JSON json_params = {{"index_type", "IVF_FLAT"}, {"metric_type", "L2"}, {"params", {{"nlist", nlist}}}};
-    JSON json_params = {{"index_type", "IVF_PQ"}, {"metric_type", "L2"}, {"params", {{"nlist", nlist}, {"m", 16}}}};
+    JSON json_params = {{"index_type", "IVF_PQ"}, {"metric_type", "L2"}, {"params", {{"nlist", nlist}, {"m", 32}}}};
     milvus::IndexParam index1 = {collection_name, "embedding", json_params.dump()};
     milvus_sdk::Utils::PrintIndexParam(index1);
     milvus::Status stat = conn_->CreateIndex(index1);
