@@ -133,17 +133,23 @@ if (MILVUS_GPU_VERSION)
 endif ()
 
 if (MILVUS_MLU_VERSION)
-    include_directories(${CAMBRICON_INCLUDE_DIRS})
-    link_directories("${CAMBRICON_TOOLKIT_ROOT_DIR}/lib64")
-    #set(cambricon_lib
-    #        cublas
-    #        )
+    include_directories($ENV{CAMBRICON_INCLUDE_DIRS})
+    link_directories("$ENV{CAMBRICON_TOOLKIT_ROOT_DIR}/lib64")
+    message( STATUS   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    message( STATUS   $ENV{CAMBRICON_INCLUDE_DIRS})
+    message( STATUS   "$ENV{CAMBRICON_TOOLKIT_ROOT_DIR}/lib64")
+    message( STATUS   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    set(cambricon_lib
+        cnrt
+        cndrv
+	mluIVFPQ #add libxx.so here. cp libmluIVFPQ.so /usr/local/neuware/lib64 ; cp product_quantization_mlu.h /usr/local/neuware/lib64
+            )
     set(depend_libs ${depend_libs}
-	    #        ${cambricon_lib}
+                ${cambricon_lib}
             )
 
     set(vector_index_srcs ${vector_index_srcs}
-	    knowhere/index/vector_index/mlu/IndexMLUIVFPQ.cpp
+	knowhere/index/vector_index/mlu/IndexMLUIVFPQ.cpp
             )
 
 endif ()

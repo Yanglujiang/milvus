@@ -19,8 +19,29 @@
 namespace milvus {
 namespace knowhere {
 
-class MLUIVFPQ : public IVFPQ {
+namespace {
+    // How many streams per device we allocate by default (for multi-streaming)
+    constexpr int kNumStreams = 2;
+
+    // Use 256 MiB of pinned memory for MLU
+    constexpr size_t kDefaultPinnedMemoryAllocation = (size_t) 256 * 1024 * 1024;
+
+    // Default temporary memory allocation for MLU
+    constexpr size_t k512MBTempMem = (size_t) 512 * 1024 * 1024;
+
+    // Default temporary memory allocation for MLU
+    constexpr size_t k1GiBTempMem = (size_t) 1024 * 1024 * 1024;
+
+    // Default temporary memory allocation for MLU
+    constexpr size_t k4GiBTempMem = (size_t) 4096 * 1024 * 1024;
+
+    // Maximum temporary memory allocation for MLU
+    constexpr size_t kMaxTempMem = (size_t) 16384 * 1024 * 1024;
+}
+
+class MLUIVFPQ : public IVFPQ  {
  public:
+    //faiss::Index* coarse_quantizer;
     MLUIVFPQ(const int& device_id) : IVFPQ() {
         index_type_ = IndexEnum::INDEX_FAISS_IVFPQ;
     }
@@ -35,15 +56,27 @@ class MLUIVFPQ : public IVFPQ {
     void
     Add(const DatasetPtr&, const Config&) override;
     */
+
+    void InitDevice(int device_ID);
+
+    void FreeDevice();
+
+    void alloTemMemForMlu(size_t total);
+
+    template <typename T>
+    void CopyCpuToMlu(T *src, int size);
+
+    template <typename T>
+    void CopyMluToCpu(T *dst, int size);
+
     void
     AddWithoutIds(const DatasetPtr&, const Config&) override;
 
- 
  protected:
     void
     QueryImpl(int64_t, const float*, int64_t, float*, int64_t*, const Config&,
               const faiss::ConcurrentBitsetPtr& bitset) override;
- 
+
 
 };
 

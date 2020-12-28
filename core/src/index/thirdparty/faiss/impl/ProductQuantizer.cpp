@@ -321,6 +321,7 @@ void ProductQuantizer::train (int n, const float * x)
         }
 
     }
+    int fordebug = 0;
 }
 
 template<class PQEncoder>

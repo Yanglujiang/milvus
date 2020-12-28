@@ -33,7 +33,7 @@
 #include "knowhere/index/vector_index/gpu/IndexGPUIVFPQ.h"
 #include "knowhere/index/vector_index/gpu/IndexGPUIVFSQ.h"
 #include "knowhere/index/vector_index/gpu/IndexIVFSQHybrid.h"
-#include "knowhere/index/vector_index/helpers/Cloner.h"
+#include "knowhere/index/vector_index/helpers/Cloner.h" // package GpuCloner according to IndexType(gpu/cpu)
 #include "knowhere/index/vector_index/helpers/FaissGpuResourceMgr.h"
 #endif
 

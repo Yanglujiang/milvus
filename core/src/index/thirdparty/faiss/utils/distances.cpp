@@ -250,6 +250,7 @@ static void knn_inner_product_sse (const float * x,
     }
 }
 
+// nq=2, nlist=4096, nprobe=128; d =128, nx = nq=2,ny=nlist=4096
 static void knn_L2sqr_sse (
                 const float * x,
                 const float * y,
@@ -257,8 +258,8 @@ static void knn_L2sqr_sse (
                 float_maxheap_array_t * res,
                 ConcurrentBitsetPtr bitset = nullptr)
 {
-    size_t k = res->k;
-    size_t thread_max_num = omp_get_max_threads();
+    size_t k = res->k; // k=nprobe=128
+    size_t thread_max_num = omp_get_max_threads(); // 12
 
     if (ny > parallel_policy_threshold || (nx < thread_max_num / 2 && ny >= thread_max_num * 32)) {
         size_t block_x = std::min(
@@ -267,7 +268,7 @@ static void knn_L2sqr_sse (
         if (block_x == 0) {
             block_x = 1;
         }
-
+        // block_x = 2, all_heap_size = 2 * 128 * 12
         size_t all_heap_size = block_x * k * thread_max_num;
         float *value = new float[all_heap_size];
         int64_t *labels = new int64_t[all_heap_size];
@@ -275,7 +276,7 @@ static void knn_L2sqr_sse (
         for (size_t x_from = 0, x_to; x_from < nx; x_from = x_to) {
             x_to = std::min(nx, x_from + block_x);
             int size = x_to - x_from;
-            int thread_heap_size = size * k;
+            int thread_heap_size = size * k; // 256
 
             // init heap
             for (size_t i = 0; i < all_heap_size; i++) {

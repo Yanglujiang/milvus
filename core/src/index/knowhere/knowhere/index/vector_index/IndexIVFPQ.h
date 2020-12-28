@@ -16,6 +16,7 @@
 
 #include "knowhere/index/vector_index/IndexIVF.h"
 
+
 namespace milvus {
 namespace knowhere {
 

@@ -13,6 +13,11 @@
 #ifdef MILVUS_GPU_VERSION
 #include "knowhere/index/vector_index/helpers/FaissGpuResourceMgr.h"
 #endif
+
+// #ifdef MILVUS_MLU_VERSION
+// #include "knowhere/index/vector_index/helpers/FaissMLUResourceMgr.h"
+// #endif
+
 #include <faiss/Clustering.h>
 #include <faiss/utils/distances.h>
 

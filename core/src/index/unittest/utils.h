@@ -41,12 +41,12 @@ class DataGen {
     int nq = 10;
     int dim = 64;
     int k = 10;
-    std::vector<float> xb;
-    std::vector<float> xq;
-    std::vector<uint8_t> xb_bin;
+    std::vector<float> xb; // libaray raw_data: nb x dim
+    std::vector<float> xq; // query raw_data: nq x dim
+    std::vector<uint8_t> xb_bin; 
     std::vector<uint8_t> xq_bin;
-    std::vector<int64_t> ids;
-    std::vector<int64_t> xids;
+    std::vector<int64_t> ids; // vector of length nb: [0,1,2,...,nb-1]
+    std::vector<int64_t> xids; // vector of length 1: [3]
     milvus::knowhere::DatasetPtr base_dataset = nullptr;
     milvus::knowhere::DatasetPtr query_dataset = nullptr;
     milvus::knowhere::DatasetPtr id_dataset = nullptr;

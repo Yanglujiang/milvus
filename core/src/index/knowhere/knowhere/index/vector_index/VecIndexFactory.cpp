@@ -44,8 +44,11 @@
 #include "knowhere/index/vector_offset_index/gpu/IndexGPUIVF_NM.h"
 #endif
 
+// add mlu_index_types here.
 #ifdef MILVUS_MLU_VERSION
 #include "knowhere/index/vector_index/mlu/IndexMLUIVFPQ.h"
+
+
 #endif
 
 namespace milvus {

@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <cassert>
 #include <stdint.h>
-
+#include <iostream>
 #include <algorithm>
 
 #include <faiss/utils/Heap.h>
@@ -97,7 +97,7 @@ void IndexIVFPQ::train_residual_o (idx_t n, const float *x, float *residuals_2)
     pq.verbose = verbose;
     pq.train (n, trainset);
 
-    if (do_polysemous_training) {
+    if (do_polysemous_training) { //false
         if (verbose)
             printf("doing polysemous training for PQ\n");
         PolysemousTraining default_pt;
@@ -122,7 +122,7 @@ void IndexIVFPQ::train_residual_o (idx_t n, const float *x, float *residuals_2)
 
     }
 
-    if (by_residual) {
+    if (by_residual) { //true
         precompute_table ();
     }
 
@@ -879,12 +879,25 @@ struct IVFPQScannerT: QueryTables {
             codes += pq.code_size;
             float dis = dis0;
             const float *tab = sim_table;
-
+            //if(res.key==150){
             for (size_t m = 0; m < pq.M; m++) {
-                dis += tab[decoder.decode()];
+                dis += tab[decoder.decode()];        
+                    //std::cout<<"**********"<<"res.key="<<res.key<<"   decoder.decode()="<<decoder.decode()<<"    "
+                    //<<" tab[decoder.decode()]= "<< tab[decoder.decode()]<<"    "<<"dis= "<<dis<<"     m="<<m<<std::endl;
+                    
                 tab += pq.ksub;
-            }
-
+            }          
+            //    std::cout<<"final——dis="<<dis<<std::endl;    
+               if(dis < 3) {
+                    std::cout<<"xxxxxxxxxxxxxx.key=" <<res.key<<"dis="<<dis<<std::endl;
+                    for (size_t m = 0; m < pq.M; m++) {
+                        std::cout<<decoder.decode()<<" "<<std::endl;
+                        std::cout<<decoder.decode()<<" "<<std::endl;
+                        std::cout<<decoder.decode()<<" "<<std::endl;
+                
+                    }
+               }
+           
             res.add(j, dis, bitset);
         }
     }
@@ -1085,7 +1098,6 @@ struct IVFPQScanner:
             /* heap_ids */ heap_ids,
             /* nup */      0
         };
-
         if (this->polysemous_ht > 0) {
             assert(precompute_mode == 2);
             this->scan_list_polysemous (ncode, codes, res, bitset);

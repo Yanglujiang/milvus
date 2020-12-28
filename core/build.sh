@@ -21,6 +21,7 @@ WITH_PROMETHEUS="ON"
 CUDA_ARCH="DEFAULT"
 CUSTOM_THIRDPARTY_PATH=""
 
+# build.sh -u -m: open mlu version and unittest.
 while getopts "p:d:t:s:f:ulrcghzme" arg; do
   case $arg in
   f)

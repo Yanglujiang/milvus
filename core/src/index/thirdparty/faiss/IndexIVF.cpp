@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <memory>
 #include <iostream>
+#include <stdio.h>
 
 #include <faiss/utils/utils.h>
 #include <faiss/utils/hamming.h>
@@ -87,7 +88,7 @@ void Level1Quantizer::train_q1 (size_t n, const float *x, bool verbose, MetricTy
         quantizer->verbose = verbose;
         FAISS_THROW_IF_NOT_MSG (quantizer->ntotal == nlist,
                           "nlist not consistent with quantizer size");
-    } else if (quantizer_trains_alone == 0) {
+    } else if (quantizer_trains_alone == 0) { // true
         if (verbose)
             printf ("Training level-1 quantizer on %ld vectors in %ldD\n",
                     n, d);
@@ -97,7 +98,7 @@ void Level1Quantizer::train_q1 (size_t n, const float *x, bool verbose, MetricTy
         if (clustering_index) {
             clus.train (n, x, *clustering_index);
             quantizer->add (nlist, clus.centroids.data());
-        } else {
+        } else { // step into this branch, n: nb, x: xb.data()
             clus.train (n, x, *quantizer);
         }
         quantizer->is_trained = true;
@@ -321,16 +322,53 @@ void IndexIVF::search (idx_t n, const float *x, idx_t k,
     std::unique_ptr<idx_t[]> idx(new idx_t[n * nprobe]);
     std::unique_ptr<float[]> coarse_dis(new float[n * nprobe]);
 
+    std::cout<<"xxxxxxxxxxxx"<<std::endl;
+
     double t0 = getmillisecs();
     quantizer->search (n, x, nprobe, coarse_dis.get(), idx.get());
+
+    // print n * topNprobe coarse_dis 
+    printf("topNprobe partitions with query L2 distances are:\n");
+    for (int q_i = 0; q_i < n; q_i++){
+        for(int i = 0; i < nprobe; i++){
+            printf("%.6f ", coarse_dis[q_i * nprobe + i]);
+        }
+        printf("\n");
+    }
+
     indexIVF_stats.quantization_time += getmillisecs() - t0;
 
     t0 = getmillisecs();
     invlists->prefetch_lists (idx.get(), n * nprobe);
 
+    // print n * topNprobe ids:
+    printf("topNprobe partitions ids are: \n");
+    for (int q_i = 0; q_i < n; q_i++){
+        for(int i = 0; i < nprobe; i++){
+            printf("%d ", idx[q_i * nprobe + i]);
+        }
+        printf("\n");
+    }
+
     search_preassigned (n, x, k, idx.get(), coarse_dis.get(),
                         distances, labels, false, nullptr, bitset);
     indexIVF_stats.search_time += getmillisecs() - t0;
+
+    // // print search result.
+    // printf("result id:\n");
+    // for (int i = 0; i < n ; i++){
+    //     for (int j = 0; j < nprobe; j++){
+    //         printf("%u ", labels[i * nprobe + j]);
+    //     }
+    //     printf("\n");
+    // }
+    // printf("result dist:\n");
+    // for (int i = 0; i < n ; i++){
+    //     for (int j = 0; j < nprobe; j++){
+    //         printf("%.6f ", distances[i * nprobe + j]);
+    //     }
+    //     printf("\n");
+    // }
 
     // nprobe logging
     if (LOG_DEBUG_) {
@@ -416,8 +454,8 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
                                    const idx_t *keys,
                                    const float *coarse_dis ,
                                    float *distances, idx_t *labels,
-                                   bool store_pairs,
-                                   const IVFSearchParameters *params,
+                                   bool store_pairs, // false
+                                   const IVFSearchParameters *params, // nullptr
                                    ConcurrentBitsetPtr bitset) const
 {
     long nprobe = params ? params->nprobe : this->nprobe;
@@ -434,10 +472,12 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
     bool do_heap_init = !(this->parallel_mode & PARALLEL_MODE_NO_HEAP_INIT);
 
     // don't start parallel section if single query
-    bool do_parallel =
+    bool do_parallel = 
         pmode == 0 ? n > 1 :
         pmode == 1 ? nprobe > 1 :
         nprobe * n > 1;
+    
+   
 
 #pragma omp parallel if(do_parallel) reduction(+: nlistv, ndis, nheap)
     {
@@ -457,6 +497,7 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
             if (metric_type == METRIC_INNER_PRODUCT) {
                 heap_heapify<HeapForIP> (k, simi, idxi);
             } else {
+                // simi: float * k, [Nan, Nan, ..., Nan]  idxi: idx_t * k, [-1, -1, -1, ..., -1]
                 heap_heapify<HeapForL2> (k, simi, idxi);
             }
         };
@@ -496,6 +537,14 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
             nlistv++;
 
             InvertedLists::ScopedCodes scodes (invlists, key);
+
+            
+            // for (int i = 0; i < list_size; i++){
+            //     for (int m = 0; m < 16; m++){
+            //         printf("index_code %d = %u \n", i,scodes.get()[i * 16 + m]);
+            //     }
+            //     std::cout<<"---------------------\n";
+            // }
 
             std::unique_ptr<InvertedLists::ScopedIds> sids;
             const Index::idx_t * ids = nullptr;
@@ -601,6 +650,10 @@ void IndexIVF::search_preassigned (idx_t n, const float *x, idx_t k,
                              pmode);
         }
     } // parallel section
+
+    
+    // print distances and idx
+
 
     if (interrupt) {
         FAISS_THROW_MSG ("computation interrupted");

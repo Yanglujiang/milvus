@@ -33,6 +33,7 @@ struct Resource {
     int64_t id;
     std::mutex mutex;
 };
+
 using ResPtr = std::shared_ptr<Resource>;
 using ResWPtr = std::weak_ptr<Resource>;
 

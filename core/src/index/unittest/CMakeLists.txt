@@ -80,7 +80,19 @@ set(faiss_srcs ${faiss_srcs}
         )
 endif ()
 if (MILVUS_MLU_VERSION)
-set(faiss_srcs ${faiss_srcs}
+    include_directories($ENV{CAMBRICON_INCLUDE_DIRS})
+    link_directories("$ENV{CAMBRICON_TOOLKIT_ROOT_DIR}/lib64")
+    
+    set(cambricon_lib
+        cnrt
+        cndrv
+	mluIVFPQ
+            )
+    set(basic_libs ${basic_libs}
+            ${cambricon_lib}
+            )
+
+    set(faiss_srcs ${faiss_srcs}
 	${INDEX_SOURCE_DIR}/knowhere/knowhere/index/vector_index/mlu/IndexMLUIVFPQ.cpp
         )
 endif ()
@@ -138,6 +150,14 @@ if (NOT TARGET test_ivfpq)
 endif ()
 target_link_libraries(test_ivfpq ${depend_libs} ${unittest_libs} ${basic_libs})
 install(TARGETS test_ivfpq DESTINATION unittest)
+
+################################################################################
+#<IVFPQ-TEST>
+if (NOT TARGET test_ivfpq_cpu)
+    add_executable(test_ivfpq_cpu test_ivfpq_cpu.cpp ${faiss_srcs} ${util_srcs})
+endif ()
+target_link_libraries(test_ivfpq_cpu ${depend_libs} ${unittest_libs} ${basic_libs})
+install(TARGETS test_ivfpq_cpu DESTINATION unittest)
 
 ################################################################################
 #<IVFNM-TEST-CPU>

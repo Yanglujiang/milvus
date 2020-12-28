@@ -31,6 +31,8 @@
 #include <utility>
 #include <vector>
 
+#include "cnrt.h"
+
 #include "faiss/BuilderSuspend.h"
 #include "knowhere/common/Exception.h"
 #include "knowhere/common/Log.h"
@@ -108,6 +110,7 @@ IVF::Query(const DatasetPtr& dataset_ptr, const Config& config, const faiss::Con
         fiu_do_on("IVF.Search.throw_std_exception", throw std::exception());
         fiu_do_on("IVF.Search.throw_faiss_exception", throw faiss::FaissException(""));
         auto k = config[meta::TOPK].get<int64_t>();
+        // rows: nq, k:topk
         auto elems = rows * k;
 
         size_t p_id_size = sizeof(int64_t) * elems;
@@ -321,7 +324,7 @@ void
 IVF::QueryImpl(int64_t n, const float* data, int64_t k, float* distances, int64_t* labels, const Config& config,
                const faiss::ConcurrentBitsetPtr& bitset) {
     auto params = GenParams(config);
-    auto ivf_index = dynamic_cast<faiss::IndexIVF*>(index_.get());
+    auto ivf_index = dynamic_cast<faiss::IndexIVFPQ*>(index_.get());
     ivf_index->nprobe = std::min(params->nprobe, ivf_index->invlists->nlist);
     stdclock::time_point before = stdclock::now();
     if (params->nprobe > 1 && n <= 4) {
@@ -329,6 +332,130 @@ IVF::QueryImpl(int64_t n, const float* data, int64_t k, float* distances, int64_
     } else {
         ivf_index->parallel_mode = 0;
     }
+
+    /* -----------  train&search args  ----------- */
+    uint64_t nb = ivf_index->ntotal; // nb
+    int dim = ivf_index->d; // dim
+    int m = ivf_index->invlists->code_size; // m
+    int nlist = ivf_index->invlists->nlist;   // nlist
+    int ksub = ivf_index->pq.ksub; // k: cluster numbers
+    int dsub = ivf_index->pq.dsub; // dsub: dim of sub_vector
+
+    std::cout<<" IVFPQ  nb      "<<nb<<std::endl;
+    std::cout<<" IVFPQ  nlist:  "<<nlist<<std::endl;
+    std::cout<<" IVFPQ  ksub:   "<<ksub<<std::endl;
+    std::cout<<" IVFPQ  dim     "<<dim<<std::endl;
+    std::cout<<" IVFPQ  m       "<<m<<std::endl;
+    std::cout<<" IVFPQ  dusb:   "<<dsub<<std::endl;
+
+    // float *level1_centroids = &((faiss::IndexFlatL2 *)ivf_index->quantizer)->xb[0]; // level1_cluster centers
+    std::vector<float> level1_centroids = ((faiss::IndexFlatL2*)ivf_index->quantizer)->xb; // level1 cluster centers: nlist x d
+    float *level2_residual_centroids = &(ivf_index->pq.centroids[0]);                        // level2_cluster centers: ksub x m x dsub
+    float *level2_residual_centroids_transorder = (float *)malloc(ksub * dim * sizeof(float)); // level2_cluster_trans centers: ksub x d
+    
+
+    std::vector<int> vecs_per_partition;
+    std::vector < std::vector<int64_t> > nprobe_ids; // Inverted lists for indexes, size <nlist , list_size>
+    std::vector< std::vector<uint8_t> > nprobe_codes;
+    std::vector<int64_t> ids;
+    std::vector<uint8_t> codes;
+
+    FILE* nlist_coarse_clusters = fopen("./nlist_coarse_clusters","wb+");
+    FILE* nprobe_level2_centroids = fopen("./nprobe_level2_centroids", "wb+");
+    FILE* nprobe_level2_centroids_ksub_D = fopen("./nprobe_level2_centroids_ksub_D", "wb+");
+    FILE* vecs_num_per_partition = fopen("./vecs_num_per_partion","wb+");  // nlist
+    FILE* ids_per_partition = fopen("./ids_per_partition","wb+");
+    FILE* codes_per_partition = fopen("./codes_per_partition","wb+");
+    //FILE* code_book = fopen("./code_book","wb+");
+    //FILE* code_book_trans = fopen("./code_book_m_N","wb+");
+
+    // fprintf nlist coarse clusters
+    for(int i = 0; i < nlist * dim; i++){
+        fprintf(nlist_coarse_clusters, "%f\n", level1_centroids[i]);
+    }
+
+    // // transorder: ksub x m x dsub --> ksub x (m x dsub)
+    for (int i = 0; i < ksub; i++){
+        for (int j = 0; j < m; j++){
+            int boundary = dsub * ksub * j + i * dsub;
+            int dst_left = i * dim + dsub * j;
+            memcpy(level2_residual_centroids_transorder + dst_left, level2_residual_centroids + boundary, dsub * sizeof(float));
+        }
+    }
+
+    // fprintf level2_residual_centroids: ksub x m x dsub
+    for(int i = 0; i < ksub * dim; i++){
+        fprintf(nprobe_level2_centroids, "%f\n", level2_residual_centroids[i]);
+        fprintf(nprobe_level2_centroids_ksub_D, "%f\n", level2_residual_centroids_transorder[i]);
+    }
+
+    // uint8_t *lib = const_cast<uint8_t *>(ivf_index->invlists->get_codes(0));        // lib short codes: nb x m
+
+    // uint8_t *lib_transorder = (uint8_t *)malloc(nb * m * sizeof(uint8_t)); 
+
+    // transorder lib: n * m --> m * n
+    // const cnrtDataType_t lib_dt = CNRT_UINT8;
+    // int dimValues[] = {1, 1, (int)nb, m};
+    // int dimOrder[] = {0, 1, 3, 2};
+    // cnrtTransDataOrder(lib, lib_dt, lib_transorder, 4, dimValues, dimOrder);
+    // for (int i = 0; i < nb * m; i++){
+    //     fprintf(code_book_trans, "%u\n", lib_transorder[i]);
+    // }
+
+
+    // fprintf lib: nb * m
+    // for (int i = 0; i < nb * m; i++){
+    //     fprintf(code_book, "%u\n", lib[i]);
+    //     fprintf(code_book_trans, "%u\n", lib_transorder[i]);
+    // }
+
+
+
+
+    // 
+    int sum = 0;
+    int number_base_vecs;
+    int64_t *partion_ids;
+    uint8_t *partion_codes;
+    for (int i = 0; i < nlist; i++){
+        partion_ids = const_cast<int64_t *>(ivf_index->invlists->get_ids(i));
+        partion_codes = const_cast<uint8_t *>(ivf_index->invlists->get_codes(i));
+        
+        number_base_vecs = ivf_index->invlists->list_size(i);
+
+        // fprintf vecs_num_per_partition
+        fprintf(vecs_num_per_partition, "%d\n", number_base_vecs);
+
+        vecs_per_partition.push_back(number_base_vecs);
+
+        sum += number_base_vecs;
+        for (int j = 0; j < number_base_vecs; j++){
+
+            // frpintf ids per partition
+            fprintf(ids_per_partition, "%ld\n", partion_ids[j]);
+            ids.push_back(partion_ids[j]);
+            for (int m = 0; m < 16; m++){
+                fprintf(codes_per_partition, "%u\n", partion_codes[j * 16 + m]);
+            }
+            
+            codes.push_back(partion_codes[j]);
+        }
+        nprobe_ids.push_back(ids);
+        nprobe_codes.push_back(codes);
+        codes.clear();
+        ids.clear();
+
+    }
+
+    // for (auto elem : vecs_per_partition){
+    //     std::cout<<elem<<" ";
+    // }
+
+    std::cout<<"\ntotal ids are: "<<sum<<std::endl;
+
+
+    // ------  search entry -----
+  
     ivf_index->search(n, data, k, distances, labels, bitset);
     stdclock::time_point after = stdclock::now();
     double search_cost = (std::chrono::duration<double, std::micro>(after - before)).count();

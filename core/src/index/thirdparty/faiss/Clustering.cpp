@@ -97,7 +97,7 @@ idx_t subsample_training_set(
           float **weights_out
 )
 {
-    if (clus.verbose) {
+    if (clus.verbose) { // false
         printf("Sampling a subset of %ld / %ld for training\n",
                clus.k * clus.max_points_per_centroid, nx);
     }
@@ -386,7 +386,7 @@ void Clustering::train_encoded (idx_t nx, const uint8_t *x_in,
             int(index.d), int(d));
 
     double t0 = getmillisecs();
-
+    // codec: nullptr
     if (!codec) {
         // Check for NaNs in input data. Normally it is the user's
         // responsibility, but it may spare us some hard-to-debug
@@ -401,11 +401,13 @@ void Clustering::train_encoded (idx_t nx, const uint8_t *x_in,
     const uint8_t *x = x_in;
     std::unique_ptr<uint8_t []> del1;
     std::unique_ptr<float []> del3;
+    // line_size = 4 * d
     size_t line_size = codec ? codec->sa_code_size() : sizeof(float) * d;
-
+    // nx: nb, k: number of clusters, max_points_per_centroid: 256
     if (nx > k * max_points_per_centroid) {
         uint8_t *x_new;
         float *weights_new;
+        // weights: nullptr, nx: clus.k * clus.max_points_per_centroid;
         nx = subsample_training_set (*this, nx, x, line_size, weights,
                                 &x_new, &weights_new);
         del1.reset (x_new); x = x_new;
@@ -417,7 +419,7 @@ void Clustering::train_encoded (idx_t nx, const uint8_t *x_in,
                  nx, k, idx_t(k) * min_points_per_centroid);
     }
 
-    if (nx == k) {
+    if (nx == k) { // false
         // this is a corner case, just copy training set to clusters
         if (verbose) {
             printf("Number of training points (%ld) same as number of "
@@ -616,6 +618,7 @@ void Clustering::train_encoded (idx_t nx, const uint8_t *x_in,
             index.reset ();
         }
     }
+
     if (nredo > 1) {
         centroids = best_centroids;
         iteration_stats = best_obj;

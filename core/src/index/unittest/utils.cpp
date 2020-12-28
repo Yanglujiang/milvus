@@ -110,7 +110,7 @@ GenBase(const int64_t dim, const int64_t nb, const void* xb, int64_t* ids, const
             xq_u[i] = xb_u[i];
         }
     }
-    xids[0] = 3;  // pseudo random
+    xids[0] = 1;  // pseudo random
 }
 
 FileIOReader::FileIOReader(const std::string& fname) {
@@ -226,8 +226,8 @@ PrintResult(const milvus::knowhere::DatasetPtr& result, const int& nq, const int
         ss_id << std::endl;
         ss_dist << std::endl;
     }
-    std::cout << "id\n" << ss_id.str() << std::endl;
-    std::cout << "dist\n" << ss_dist.str() << std::endl;
+    std::cout << "result id:\n" << ss_id.str() << std::endl;
+    std::cout << "result dist:\n" << ss_dist.str() << std::endl;
 }
 
 // not used

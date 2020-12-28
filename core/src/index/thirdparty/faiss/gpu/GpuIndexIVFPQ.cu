@@ -73,7 +73,8 @@ GpuIndexIVFPQ::~GpuIndexIVFPQ() {
   delete index_;
 }
 
-void
+
+void // copy to GPU
 GpuIndexIVFPQ::copyFrom(const faiss::IndexIVFPQ* index) {
   DeviceScope scope(device_);
 
@@ -138,7 +139,7 @@ GpuIndexIVFPQ::copyFrom(const faiss::IndexIVFPQ* index) {
   }
 }
 
-void
+void // copy to CPU
 GpuIndexIVFPQ::copyTo(faiss::IndexIVFPQ* index) const {
   DeviceScope scope(device_);
 
