@@ -25,130 +25,22 @@
 
 #include "cnrt.h"
 
-//void *mlu_dev;                   // mlu memory space
-//size_t offset = 0;                   // mlu memory offset for copy query_vec, level2_centroids, libcodes to mlu
-//size_t topk_out_dev_offset;      // topk distances mlu mem offset
-//size_t topk_index_dev_offset;    // topk indexs mlu mem offset
-//
-///****************************
-//     mlu_dev storage layout:
-//      --------------------
-//      |  level2_centroids = k * D|
-//      |-------------------|
-//      |      libcodes  = m * n   |
-//      |-------------------| 
-//      |     index_dev  = n   |
-//      |-------------------| 
-//      |       query  = nq * D     |  
-//      |-------------------| 
-//      |   act_tbl_dev  = nq * m * 128 * 9   |
-//      |-------------------| 
-//      |    output_dev  = nq * n   |
-//      |-------------------| 
-//      |   topk_out_dev  = nq * topk  |
-//      |-------------------|
-//      |  topk_index_dev  = nq * topk |
-//      ---------------------
-//****************************/
-//
-//template <typename T>
-//void Range(T *src,
-//         T start, 
-//         T end, 
-//         T stride);
-//
-//template <typename T>
-//void readData(const char *path, 
-//        T *pointer, 
-//        int vec_num );
-//
-//template <typename T>
-//void readLib(const char *path, 
-//        T *pointer, 
-//        int vec_num );
-//
-//void CopyToMlu(float *src, 
-//        int size);
-//
-//void CopyToMlu(uint8_t *src,
-//        int size);
-//
-//void CopyToCpu(int32_t *dst, 
-//        int size);
-//
-//void CopyToCpu(float *dst,
-//        int size);
-//
-//void ConvertInt32ToInt64(int32_t *src, 
-//                        int64_t *dst, int length);
-//
-//void ConvertInt64ToInt32(int64_t *src, 
-//                        int32_t *dst, int length);
-//
-//
-//template <typename T>
-//void TransLevel2Centroids(T *src,
-//                         T *dst, 
-//                         int N, 
-//                         int m, 
-//                         int dim);
-//                
-//void AdaptDataForQuery(float *query, 
-//                     float *level1_centroids,
-//                     float *level2_centroids,
-//                     float *level2_centroids_transorder,
-//                     uint8_t *lib,
-//                     uint8_t *lib_transorder,
-//                     uint64_t nb,
-//                     int nq, 
-//                     int ksub,
-//                     int m,
-//                     int dim);
-//
-//void AdaptDataForBase(float *level2_centroids,
-//                     float *level2_centroids_transorder,
-//                     uint8_t *lib,
-//                     uint8_t *lib_transorder,
-//                     uint64_t nb,
-//                     int ksub,
-//                     int m,
-//                     int dim);
-//
-//
-//void SaveTrainResults(float *level1_centroids,
-//                    float *level2_residual_centroids,
-//                    uint8_t *lib,
-//                    int nlist,
-//                    int dim,
-//                    uint64_t n, 
-//                    int m,
-//                    int k);
-//
-//void PQEncoder(uint8_t *lib, 
-//        float *long_lib, 
-//        float *code, 
-//        uint64_t N, 
-//        int D, 
-//        int M);
-//
-//void InitMluDevice(int device_id);
-//
-//cnrtRet_t FreeMluResoures(){
-//        CNRT_CHECK(cnrtFree(mlu_dev));
-//        return CNRT_RET_SUCCESS;
-//}
-//
-//void getTempMemForMlu(size_t requested);
-//
-cnrtRet_t MluTopk(void *input, 
-        void *input_index,
+void PQEncoder(uint8_t *lib, 
+        float *long_lib, 
+        float *code, 
+        uint64_t N, 
+        int D, 
+        int M);
+
+cnrtRet_t MluTopk(void *input,
         void *output,
-        void *output_index,
-        int n, 
-        int c, 
-        int k, 
-        cnrtDataType_t src_dt, 
-        cnrtDataType_t index_dt);
+        void *index,
+        int k,
+        int front_dim_num,
+        int end_dim_num,
+        int dim_num,
+        bool largest,
+        cnrtDataType_t k_data_type);
 
 cnrtRet_t MluProductQuantization(
         void *query_vec,
@@ -165,17 +57,5 @@ cnrtRet_t MluProductQuantization(
         int k,
         int D,
         int n);
-        
-//// void* mlu_dev
-//void MLUPQSearch(
-//        /* float *query,
-//        float *level2_centroids,
-//        uint8_t *lib, */
-//        const int &batch,
-//        const int &m, 
-//        const int &k,
-//        const int &D,
-//        const uint64_t &n,
-//        const int &topk);
-//
+
 #endif  //MLU_PRODUCT_QUANTIZATION_H_

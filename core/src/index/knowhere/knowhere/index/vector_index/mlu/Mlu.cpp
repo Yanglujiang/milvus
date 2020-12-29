@@ -26,7 +26,6 @@ MluInterface::MluInterface(int64_t& device_id, ResWPtr& res_, faiss::IndexIVFPQ*
 }
 
 MluInterface::~MluInterface() {
-    std::cout<<"Here is MluInterface::~MluInterface"<<std::endl;
 }
 
 void
@@ -44,7 +43,7 @@ void ConvertInt64ToInt32(int64_t *src, int32_t *dst, int length){
     }
 }
 
-void ConvertInt32ToInt64(int32_t *src, int64_t *dst, int length){
+void ConvertUint32ToInt64(uint32_t *src, int64_t *dst, int length){
     for (int i = 0; i < length; i++){
         dst[i] = src[i];
     }
@@ -119,8 +118,9 @@ MluInterface::CopyIndexToMLU() {
     cnrtMemcpy((char *)index_dev + codes_offset, 
             codes_transorder.data(), sizeof(uint8_t) * m * nb, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
-    cnrtMemcpy((char *)index_dev + ids_offset, 
-            ids_32.data(), sizeof(int32_t) * nb, CNRT_MEM_TRANS_DIR_HOST2DEV);
+//    only support  search by auto ids
+//    cnrtMemcpy((char *)index_dev + ids_offset, 
+//            ids_32.data(), sizeof(int32_t) * nb, CNRT_MEM_TRANS_DIR_HOST2DEV);
 
 }
 
@@ -133,109 +133,96 @@ MluInterface::Search(int64_t num_query, const float *data, int64_t k, float *dis
     nq = num_query;
     topk = k;
 
-    int query_request = sizeof(float) * nq * d + sizeof(float) * nq * m * 128 * 9 + sizeof(float) * nq * nb + sizeof(float) * nq * topk +sizeof(int32_t) * nq * topk;
-
-
+    // if query size > 64 we search by blocks to avoid malloc issue
+    const int64_t block_size = 16;
+    int64_t search_size = (nq > block_size) ? block_size : nq;
+    int64_t query_request = sizeof(float) * search_size * d + sizeof(float) * search_size * m * 128 * 9 + sizeof(float) * search_size * nb + sizeof(float) * search_size * topk +sizeof(int32_t) * search_size * topk;
     CNRT_CHECK(cnrtMalloc(&query_dev, cnrtDataTypeSize(CNRT_UINT8) * query_request));
 
-    int query_offset = 0;
-    int act_tbl_offset = query_offset + sizeof(float) * nq * d;
-    int output_offset = act_tbl_offset + sizeof(float) * nq * m * 128 * 9;
-    int topk_out_offset = output_offset + sizeof(float) * nq * nb;  
-    int topk_out_ids_offset = topk_out_offset + sizeof(float) * nq * topk;
+    for (int64_t query_loop = 0; query_loop < nq; query_loop += block_size) {
+        search_size = (nq - query_loop > block_size) ? block_size : (nq - query_loop);
 
-    const cnrtDataType_t query_dt = CNRT_FLOAT32;
-    const cnrtDataType_t lib_dt = CNRT_UINT8;
-    cnrtDataType_t code_dt = query_dt;
-    cnrtDataType_t out_dt = query_dt;
-    cnrtDataType_t src_dt = query_dt;
-    cnrtDataType_t index_dt = CNRT_INT32;
+        int query_offset = 0;
+        int act_tbl_offset = query_offset + sizeof(float) * search_size * d;
+        int output_offset = act_tbl_offset + sizeof(float) * search_size * m * 128 * 9;
+        int topk_out_offset = output_offset + sizeof(float) * search_size * nb;  
+        int topk_out_ids_offset = topk_out_offset + sizeof(float) * search_size * topk;
 
-    float *level1_centroids = &((faiss::IndexFlatL2 *)index_ptr->quantizer)->xb[0]; // level1_cluster centers
-    
-    std::vector<float> query(nq * d); 
-    // do resiudal: query - level1_centroids 
-    for (int i = 0; i < nq; i++){
-        for (int j = 0; j < d; j++){
-            query[i * d + j] = data[i * d + j] - level1_centroids[j];
+        const cnrtDataType_t query_dt = CNRT_FLOAT32;
+        const cnrtDataType_t lib_dt = CNRT_UINT8;
+        cnrtDataType_t code_dt = query_dt;
+        cnrtDataType_t out_dt = query_dt;
+        cnrtDataType_t src_dt = query_dt;
+        cnrtDataType_t index_dt = CNRT_INT32;
+
+        float *level1_centroids = &((faiss::IndexFlatL2 *)index_ptr->quantizer)->xb[0]; // level1_cluster centers
+        
+        std::vector<float> query(search_size * d); 
+        // do resiudal: query - level1_centroids 
+        for (int i = 0; i < search_size; i++){
+            for (int j = 0; j < d; j++){
+                query[i * d + j] = data[(query_loop + i) * d + j] - level1_centroids[j];
+            }
         }
-    }
 
-    cnrtMemcpy((char *)query_dev + query_offset, 
-            query.data(), sizeof(float) * nq * d, CNRT_MEM_TRANS_DIR_HOST2DEV);
-
-//    std::cout
-//        <<" level1_centroids_offset = "<<level1_centroids_offset
-//        <<" level2_centroids_offset = "<<level2_centroids_offset
-//        <<" codes_offset = "<<codes_offset
-//        <<" ids_offset = "<<ids_offset
-//        <<" query_offset = "<<query_offset
-//        <<" act_tbl_offset = "<<act_tbl_offset
-//        <<" output_offset = "<<output_offset
-//        <<" topk_out_offset = "<<topk_out_offset
-//        <<" topk_out_ids_offset = "<<topk_out_ids_offset
-//        <<" nq = "<<nq
-//        <<" m = "<<m
-//        <<" ksub = "<<ksub
-//        <<" d = "<<d
-//        <<" nb = "<<nb
-//        <<" topk = "<<topk <<std::endl;
+        cnrtMemcpy((char *)query_dev + query_offset, 
+                query.data(), sizeof(float) * search_size * d, CNRT_MEM_TRANS_DIR_HOST2DEV);
  
-    MluProductQuantization(
-            (char *)query_dev + query_offset,
-            (char *)index_dev + level2_centroids_offset,
-            (char *)query_dev + act_tbl_offset,
-            (char *)index_dev + codes_offset,
-            (char *)query_dev + output_offset,
-            query_dt,
-            code_dt,
-            lib_dt,
-            out_dt,
-            nq,
-            m,
-            ksub,
-            d,
-            nb);
-    for(int i = 0; i < nq; i++){
-        std::vector<int64_t> ss_ids(nb); 
-        std::vector<float> ss_dis(nb); 
-        typedef std::pair<int64_t, float> Pair;
-        std::vector<Pair> pq_search_out_dis_ids;
-	
-	cnrtMemcpy(ss_dis.data(), (char *)query_dev + output_offset + nb * i * sizeof(float),  sizeof(float) * nb, CNRT_MEM_TRANS_DIR_DEV2HOST);
+        MluProductQuantization(
+                (char *)query_dev + query_offset,
+                (char *)index_dev + level2_centroids_offset,
+                (char *)query_dev + act_tbl_offset,
+                (char *)index_dev + codes_offset,
+                (char *)query_dev + output_offset,
+                query_dt,
+                code_dt,
+                lib_dt,
+                out_dt,
+                search_size,
+                m,
+                ksub,
+                d,
+                nb);
+        //for(int i = 0; i < search_size; i++){
+        //    std::vector<int64_t> ss_ids(nb); 
+        //    std::vector<float> ss_dis(nb); 
+        //    typedef std::pair<int64_t, float> Pair;
+        //    std::vector<Pair> pq_search_out_dis_ids;
+        //    
+        //    cnrtMemcpy(ss_dis.data(), (char *)query_dev + output_offset + nb * i * sizeof(float),  sizeof(float) * nb, CNRT_MEM_TRANS_DIR_DEV2HOST);
 
-        int64_t *ids_64 = const_cast<int64_t *>(index_ptr->invlists->get_ids(0));        //lib index 
-	for(int j = 0; j < nb; j++){
-	    ss_ids[j] = ids_64[j];
-	    pq_search_out_dis_ids.push_back(std::make_pair(ss_ids[j], ss_dis[j]));
-	}
-	std::partial_sort(pq_search_out_dis_ids.begin(), pq_search_out_dis_ids.begin() + k, pq_search_out_dis_ids.end(),
-			                      [](Pair &x, Pair &y) -> bool { return x.second < y.second; });
-	
-	for(int j = 0; j < topk; j++){
-		distance[i * topk + j] = pq_search_out_dis_ids[j].second;
-		labels[i * topk + j] = pq_search_out_dis_ids[j].first;
-	}
-	pq_search_out_dis_ids.clear();
+        //    int64_t *ids_64 = const_cast<int64_t *>(index_ptr->invlists->get_ids(0));        //lib index 
+        //    for(int j = 0; j < nb; j++){
+        //        ss_ids[j] = ids_64[j];
+        //        pq_search_out_dis_ids.push_back(std::make_pair(ss_ids[j], ss_dis[j]));
+        //    }
+        //    std::partial_sort(pq_search_out_dis_ids.begin(), pq_search_out_dis_ids.begin() + k, pq_search_out_dis_ids.end(),
+        //    		                      [](Pair &x, Pair &y) -> bool { return x.second < y.second; });
+        //    
+        //    for(int j = 0; j < topk; j++){
+        //    	distance[(query_loop + i) * topk + j] = pq_search_out_dis_ids[j].second;
+        //    	labels[(query_loop + i) * topk + j] = pq_search_out_dis_ids[j].first;
+        //    }
+        //    pq_search_out_dis_ids.clear();
+        //}
+        MluTopk(
+                (char *)query_dev + output_offset,
+                (char *)query_dev + topk_out_offset, 
+                (char *)query_dev + topk_out_ids_offset,
+                topk,
+              	search_size,
+		1,
+                nb,
+		0,
+                src_dt);
+
+        cnrtMemcpy(distance, (char *)query_dev + topk_out_offset,  sizeof(float) * search_size * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
+
+        std::vector<uint32_t> ids_32(search_size * topk); 
+        cnrtMemcpy(ids_32.data(), (char *)query_dev + topk_out_ids_offset, sizeof(uint32_t) * search_size * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
+
+        ConvertUint32ToInt64(ids_32.data(), labels + query_loop * topk, search_size * topk);
     }
-//    MluTopk(
-//            (char *)query_dev + output_offset,
-//            (char *)index_dev + ids_offset,
-//            (char *)query_dev + topk_out_offset, 
-//            (char *)query_dev + topk_out_ids_offset,
-//            nq,
-//            nb,
-//            topk,
-//            src_dt, 
-//            index_dt
-//           );
-//
-//    cnrtMemcpy(distance, (char *)query_dev + topk_out_offset,  sizeof(float) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
-//
-//    std::vector<int32_t> ids_32(nq * topk); 
-//    cnrtMemcpy(ids_32.data(), (char *)query_dev + topk_out_ids_offset, sizeof(int32_t) * nq * topk, CNRT_MEM_TRANS_DIR_DEV2HOST);
-//
-//    ConvertInt32ToInt64(ids_32.data(), labels, nq * topk);
     CNRT_CHECK(cnrtFree(index_dev));
     CNRT_CHECK(cnrtFree(query_dev));
 

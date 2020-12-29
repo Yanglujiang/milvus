@@ -138,7 +138,7 @@ endif ()
     set(cambricon_lib
 	    cnrt
 	    cndrv
-        mluIVFPQ
+	    cnaiss
             )
     set(depend_libs ${depend_libs}
 	            ${cambricon_lib}
