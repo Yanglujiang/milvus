@@ -9,23 +9,35 @@
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 // or implied. See the License for the specific language governing permissions and limitations under the License
 
-#pragma once
+#ifndef MLU_INST_H
+#define MLU_INST_H
+#include <memory>
+#include <mutex>
+#include "Mlu.h"
 
-#include "knowhere/index/vector_index/VecIndex.h"
-
+//namespace Mlu {
 namespace milvus {
 namespace knowhere {
-namespace cloner {
 
-extern VecIndexPtr
-CopyCpuToGpu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
+class MluInst {
+ public:
+    static MluInterfacePtr
+    GetInstance(int64_t device_id, ResWPtr res_, faiss::IndexIVFPQ* index) {
+        if (instance == nullptr) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (instance == nullptr) {
+                instance = std::make_shared<MluInterface>(device_id, res_, index);
+            }
+        }
+        return instance;
+    }
 
-extern VecIndexPtr
-CopyCpuToMlu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
-
-extern VecIndexPtr
-CopyGpuToCpu(const VecIndexPtr& index, const Config& config);
-
-}  // namespace cloner
+ private:
+    static MluInterfacePtr instance;
+    static std::mutex mutex_;
+};
 }  // namespace knowhere
 }  // namespace milvus
+
+//}  // namespace Mlu
+#endif

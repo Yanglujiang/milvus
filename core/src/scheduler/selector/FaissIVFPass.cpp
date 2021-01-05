@@ -16,6 +16,7 @@
 #include "scheduler/SchedInst.h"
 #include "scheduler/Utils.h"
 #include "scheduler/task/SearchTask.h"
+#include "scheduler/tasklabel/SpecResLabel.h"
 #include "server/ValidationUtil.h"
 #include "utils/Log.h"
 

@@ -132,6 +132,30 @@ if (MILVUS_GPU_VERSION)
             )
 endif ()
 
+    if (MILVUS_MLU_VERSION)
+    include_directories($ENV{CAMBRICON_INCLUDE_DIRS})
+    link_directories("$ENV{CAMBRICON_TOOLKIT_ROOT_DIR}/lib64")
+    set(cambricon_lib
+	    cnrt
+	    cndrv
+	    cnaiss
+            )
+    set(depend_libs ${depend_libs}
+	            ${cambricon_lib}
+            )
+
+    set(vector_index_srcs ${vector_index_srcs}
+	    knowhere/index/vector_index/mlu/IndexMLUIVFPQ.cpp
+	    knowhere/index/vector_index/mlu/MluInst.cpp
+	    knowhere/index/vector_index/mlu/Mlu.cpp
+	    knowhere/index/vector_index/mlu/StandardMluResources.cpp
+        knowhere/index/vector_index/helpers/Cloner.cpp
+        knowhere/index/vector_index/helpers/FaissMluResourceMgr.cpp
+            )
+
+endif ()
+
+
 if (NOT TARGET knowhere)
     add_library(
             knowhere STATIC

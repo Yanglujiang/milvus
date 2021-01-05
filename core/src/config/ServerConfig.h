@@ -124,6 +124,14 @@ struct ServerConfig {
         String build_index_devices;
     } gpu;
 
+    struct MLU {
+        Bool enable;
+        Integer cache_size;
+        Floating cache_threshold;
+        Integer mlu_search_threshold;
+        String search_devices;
+    } mlu;
+
     struct Tracing {
         String json_config_path;
     } tracing;
@@ -167,4 +175,7 @@ ParsePreloadCollection(const std::string&);
 
 std::vector<int64_t>
 ParseGPUDevices(const std::string&);
+
+std::vector<int64_t>
+ParseMLUDevices(const std::string&);
 }  // namespace milvus

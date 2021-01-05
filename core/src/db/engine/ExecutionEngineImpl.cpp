@@ -45,13 +45,27 @@
 #include "knowhere/index/vector_index/helpers/Cloner.h"
 #endif
 
+#ifdef MILVUS_MLU_VERSION
+#include "knowhere/index/vector_index/helpers/Cloner.h"
+#include "knowhere/index/vector_index/mlu/IndexMLUIVFPQ.h"
+#endif
+
 namespace milvus {
 namespace engine {
 
+#ifdef MILVUS_GPU_VERSION
 ExecutionEngineImpl::ExecutionEngineImpl(const std::string& dir_root, const SegmentVisitorPtr& segment_visitor)
     : gpu_enable_(config.gpu.enable()) {
     segment_reader_ = std::make_shared<segment::SegmentReader>(dir_root, segment_visitor);
 }
+#endif
+
+#ifdef MILVUS_MLU_VERSION
+ExecutionEngineImpl::ExecutionEngineImpl(const std::string& dir_root, const SegmentVisitorPtr& segment_visitor)
+    : mlu_enable_(config.mlu.enable()) {
+    segment_reader_ = std::make_shared<segment::SegmentReader>(dir_root, segment_visitor);
+}
+#endif
 
 knowhere::VecIndexPtr
 ExecutionEngineImpl::CreateVecIndex(const std::string& index_name, knowhere::IndexMode mode) {
@@ -175,6 +189,40 @@ ExecutionEngineImpl::CopyToGpu(uint64_t device_id) {
 #endif
     return Status::OK();
 }
+
+Status
+ExecutionEngineImpl::CopyToMlu(uint64_t device_id) {
+#ifdef MILVUS_MLU_VERSION
+    TimeRecorderAuto rc("ExecutionEngineImpl::CopyToMlu");
+
+    SegmentPtr segment_ptr;
+    segment_reader_->GetSegment(segment_ptr);
+
+    engine::VECTOR_INDEX_MAP new_map;
+    engine::VECTOR_INDEX_MAP& indice = segment_ptr->GetVectorIndice();
+    bool indexModify = false;
+    for (auto& pair : indice) {
+        if (pair.second != nullptr) {
+            if (pair.second->index_type() == "FLAT")
+                continue;
+
+            indexModify = true;
+            auto mlu_index = knowhere::cloner::CopyCpuToMlu(pair.second, device_id, knowhere::Config());
+            if (mlu_index == nullptr) {
+                new_map.insert(pair);
+            } else {
+                new_map.insert(std::make_pair(pair.first, mlu_index));
+            }
+        }
+    }
+    if (indexModify) {
+    indice.swap(new_map);
+    mlu_num_ = device_id;
+    }
+#endif
+    return Status::OK();
+}
+
 
 void
 MapAndCopyResult(const knowhere::DatasetPtr& dataset, std::shared_ptr<std::vector<idx_t>> uids, int64_t nq, int64_t k,

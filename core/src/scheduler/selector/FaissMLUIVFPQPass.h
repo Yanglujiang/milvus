@@ -8,26 +8,53 @@
 // Unless required by applicable law or agreed to in writing, software distributed under the License
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 // or implied. See the License for the specific language governing permissions and limitations under the License.
-
+#ifdef MILVUS_MLU_VERSION
 #pragma once
 
+#include <condition_variable>
+#include <deque>
+#include <limits>
+#include <list>
 #include <memory>
+#include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 
-#include "resource/CpuResource.h"
-#include "resource/DiskResource.h"
-#include "resource/GpuResource.h"
-#include "resource/MluResource.h"
-#include "resource/Resource.h"
+#include "config/ConfigMgr.h"
+#include "scheduler/selector/Pass.h"
 
 namespace milvus {
 namespace scheduler {
 
-class ResourceFactory {
+class FaissMLUIVFPQPass : public Pass, public ConfigObserver {
  public:
-    static std::shared_ptr<Resource>
-    Create(const std::string& name, const std::string& type, uint64_t device_id, bool enable_executor = true);
+    FaissMLUIVFPQPass();
+
+    ~FaissMLUIVFPQPass();
+
+ public:
+    void
+    Init() override;
+
+    bool
+    Run(const TaskPtr& task) override;
+
+ public:
+    void
+    ConfigUpdate(const std::string& name) override;
+
+ private:
+    int64_t idx_ = 0;
+    bool mlu_enable_ = false;
+    int64_t threshold_ = 0;
+    std::vector<int64_t> search_mlus_;
 };
+
+using FaissMLUIVFPQPassPtr = std::shared_ptr<FaissMLUIVFPQPass>;
 
 }  // namespace scheduler
 }  // namespace milvus
+#endif

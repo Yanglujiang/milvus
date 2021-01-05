@@ -360,12 +360,21 @@ Utils::GenDSLJson(nlohmann::json& dsl_json, nlohmann::json& vector_param_json, i
     //                   {{"vector", "placeholder_1"}}}}}};
     JSON must_query, term_query, range_query, vector_query;
     term_query["term"]["release_year"] = {2002, 2003};
-    range_query["range"]["duration"] = {{"GT", 250}};
+    range_query["range"]["duration"] = {{"GT", 200}};
     vector_query["vector"] = "placeholder_1";
     must_query["must"] = {term_query, range_query, vector_query};
     dsl_json["bool"] = must_query;
 
-    vector_param_json = {{"placeholder_1", {{"embedding", {{"topk", topk}, {"metric_type", metric_type}}}}}};
+    vector_param_json = {{"placeholder_1", 
+                            {{"embedding", 
+                                 {{"topk", topk}, 
+                                   {"metric_type", metric_type}, 
+                                   {"params", 
+                                       {{"nprobe", 1}}
+                                   }
+                                  }
+                             }}
+                        }};
 }
 
 void

@@ -11,21 +11,37 @@
 
 #pragma once
 
-#include "knowhere/index/vector_index/VecIndex.h"
+#include <unordered_map>
+#include <vector>
+#include <mutex>
 
-namespace milvus {
+#include "cnrt.h"
+
+namespace milvus { 
 namespace knowhere {
-namespace cloner {
 
-extern VecIndexPtr
-CopyCpuToGpu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
+class StandardMluResources{
+ public:
+  StandardMluResources();
 
-extern VecIndexPtr
-CopyCpuToMlu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
+  ~StandardMluResources();
 
-extern VecIndexPtr
-CopyGpuToCpu(const VecIndexPtr& index, const Config& config);
+  void initMluResource(int64_t device_id);
 
-}  // namespace cloner
+  void freeMluResource(int64_t device_id);
+
+  void setTempMemory(size_t size);
+
+  void* getTempMemory();
+
+  void freeTempMemory();
+
+private:
+  // Temp memory allocation for use with this MLU
+  void* tempMemAlloc_;
+  size_t tempMemAllocSize_;
+
+};
+
 }  // namespace knowhere
 }  // namespace milvus

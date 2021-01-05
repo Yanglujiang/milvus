@@ -12,6 +12,7 @@
 #include "scheduler/Scheduler.h"
 #include "Algorithm.h"
 #include "cache/GpuCacheMgr.h"
+#include "cache/MluCacheMgr.h"
 #include "event/LoadCompletedEvent.h"
 
 #include <utility>

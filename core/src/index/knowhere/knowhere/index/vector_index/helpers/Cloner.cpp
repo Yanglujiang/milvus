@@ -73,3 +73,41 @@ CopyCpuToGpu(const VecIndexPtr& index, const int64_t device_id, const Config& co
 }  // namespace knowhere
 }  // namespace milvus
 #endif
+
+#ifdef MILVUS_MLU_VERSION
+#include "knowhere/index/vector_index/helpers/Cloner.h"
+#include "knowhere/common/Exception.h"
+#include "knowhere/index/vector_index/IndexIVFPQ.h"
+#include "knowhere/index/vector_index/mlu/IndexMLUIVFPQ.h"
+
+namespace milvus {
+namespace knowhere {
+namespace cloner {
+
+void
+CopyIndexData(const VecIndexPtr& dst_index, const VecIndexPtr& src_index) {
+    dst_index->SetUids(src_index->GetUids());
+    dst_index->SetBlacklist(src_index->GetBlacklist());
+    dst_index->SetIndexSize(src_index->IndexSize());
+}
+
+
+VecIndexPtr
+CopyCpuToMlu(const VecIndexPtr& index, const int64_t device_id, const Config& config) {
+    VecIndexPtr result;
+    if (auto cpu_index = std::dynamic_pointer_cast<IVFPQ>(index)) {
+        result = cpu_index->CopyCpuToMlu(device_id, config);
+    } else {
+        KNOWHERE_THROW_MSG("this index type not support transfer to mlu");
+    }
+    if (result != nullptr) {
+        CopyIndexData(result, index);
+    }
+    return result;
+}
+
+}  // namespace cloner
+}  // namespace knowhere
+}  // namespace milvus
+#endif
+

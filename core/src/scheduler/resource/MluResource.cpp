@@ -9,24 +9,29 @@
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 // or implied. See the License for the specific language governing permissions and limitations under the License.
 
-#include "scheduler/ResourceFactory.h"
+#include "scheduler/resource/MluResource.h"
 
 namespace milvus {
 namespace scheduler {
 
-std::shared_ptr<Resource>
-ResourceFactory::Create(const std::string& name, const std::string& type, uint64_t device_id, bool enable_executor) {
-    if (type == "DISK") {
-        return std::make_shared<DiskResource>(name, device_id, enable_executor);
-    } else if (type == "CPU") {
-        return std::make_shared<CpuResource>(name, device_id, enable_executor);
-    } else if (type == "GPU") {
-        return std::make_shared<GpuResource>(name, device_id, enable_executor);
-    } else if (type == "MLU") {
-        return std::make_shared<MluResource>(name, device_id, enable_executor);
-    } else {
-        return nullptr;
-    }
+std::ostream&
+operator<<(std::ostream& out, const MluResource& resource) {
+    out << resource.Dump().dump();
+    return out;
+}
+
+MluResource::MluResource(std::string name, uint64_t device_id, bool enable_executor)
+    : Resource(std::move(name), ResourceType::MLU, device_id, enable_executor) {
+}
+
+void
+MluResource::Load(TaskPtr task) {
+    task->Load(LoadType::CPU2MLU, device_id_);
+}
+
+void
+MluResource::Execute(TaskPtr task) {
+    task->Execute();
 }
 
 }  // namespace scheduler

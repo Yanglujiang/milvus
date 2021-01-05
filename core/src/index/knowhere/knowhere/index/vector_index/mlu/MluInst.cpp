@@ -9,23 +9,16 @@
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 // or implied. See the License for the specific language governing permissions and limitations under the License
 
-#pragma once
+#include "knowhere/index/vector_index/mlu/MluInst.h"
 
-#include "knowhere/index/vector_index/VecIndex.h"
-
+//namespace Mlu {
 namespace milvus {
 namespace knowhere {
-namespace cloner {
 
-extern VecIndexPtr
-CopyCpuToGpu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
+MluInterfacePtr MluInst::instance = nullptr;
+std::mutex MluInst::mutex_;
 
-extern VecIndexPtr
-CopyCpuToMlu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
-
-extern VecIndexPtr
-CopyGpuToCpu(const VecIndexPtr& index, const Config& config);
-
-}  // namespace cloner
 }  // namespace knowhere
 }  // namespace milvus
+
+//}  // namespace Mlu

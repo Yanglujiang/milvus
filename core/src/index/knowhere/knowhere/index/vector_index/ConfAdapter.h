@@ -58,6 +58,9 @@ class IVFPQConfAdapter : public IVFConfAdapter {
     CheckGPUPQParams(int64_t dimension, int64_t m, int64_t nbits);
 
     static bool
+    CheckMLUPQParams(int64_t dimension, int64_t m);
+
+    static bool
     CheckCPUPQParams(int64_t dimension, int64_t m);
 };
 

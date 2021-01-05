@@ -12,20 +12,33 @@
 #pragma once
 
 #include "knowhere/index/vector_index/VecIndex.h"
+#include "knowhere/index/vector_index/helpers/FaissMluResourceMgr.h"
 
 namespace milvus {
 namespace knowhere {
-namespace cloner {
 
-extern VecIndexPtr
-CopyCpuToGpu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
+class MLUIndex {
+ public:
+    explicit MLUIndex(const int& device_id) : mlu_id_(device_id) {
+    }
 
-extern VecIndexPtr
-CopyCpuToMlu(const VecIndexPtr& index, const int64_t device_id, const Config& config);
+    MLUIndex(const int& device_id, const ResPtr& resource) : mlu_id_(device_id), res_(resource) {
+    }
 
-extern VecIndexPtr
-CopyGpuToCpu(const VecIndexPtr& index, const Config& config);
+    void
+    SetMluDevice(const int& mlu_id) {
+        mlu_id_ = mlu_id;
+    }
 
-}  // namespace cloner
+    const int64_t
+    GetMluDevice() {
+        return mlu_id_;
+    }
+
+ protected:
+    int64_t mlu_id_;
+    ResWPtr res_;
+};
+
 }  // namespace knowhere
 }  // namespace milvus

@@ -94,6 +94,8 @@ ConfigMgr::ConfigMgr() : config_list_(InitConfig()) {
         "cache.cache_size",
         "gpu.cache_size",
         "gpu.gpu_search_threshold",
+        "mlu.cache_size",
+        "mlu.mlu_search_threshold",
         "storage.auto_flush_interval",
         "engine.build_index_threshold",
         "engine.search_combine_nq",

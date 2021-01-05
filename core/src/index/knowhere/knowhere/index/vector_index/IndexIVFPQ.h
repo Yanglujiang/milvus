@@ -35,6 +35,9 @@ class IVFPQ : public IVF {
     VecIndexPtr
     CopyCpuToGpu(const int64_t, const Config&) override;
 
+    VecIndexPtr
+    CopyCpuToMlu(const int64_t, const Config&);
+
     void
     UpdateIndexSize() override;
 

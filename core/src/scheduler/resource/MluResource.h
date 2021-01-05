@@ -9,25 +9,30 @@
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 // or implied. See the License for the specific language governing permissions and limitations under the License.
 
-#include "scheduler/ResourceFactory.h"
+#pragma once
+
+#include "Resource.h"
+
+#include <string>
+#include <utility>
 
 namespace milvus {
 namespace scheduler {
 
-std::shared_ptr<Resource>
-ResourceFactory::Create(const std::string& name, const std::string& type, uint64_t device_id, bool enable_executor) {
-    if (type == "DISK") {
-        return std::make_shared<DiskResource>(name, device_id, enable_executor);
-    } else if (type == "CPU") {
-        return std::make_shared<CpuResource>(name, device_id, enable_executor);
-    } else if (type == "GPU") {
-        return std::make_shared<GpuResource>(name, device_id, enable_executor);
-    } else if (type == "MLU") {
-        return std::make_shared<MluResource>(name, device_id, enable_executor);
-    } else {
-        return nullptr;
-    }
-}
+class MluResource : public Resource {
+ public:
+    explicit MluResource(std::string name, uint64_t device_id, bool enable_executor);
+
+    friend std::ostream&
+    operator<<(std::ostream& out, const MluResource& resource);
+
+ protected:
+    void
+    Load(TaskPtr task) override;
+
+    void
+    Execute(TaskPtr task) override;
+};
 
 }  // namespace scheduler
 }  // namespace milvus
